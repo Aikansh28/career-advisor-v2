@@ -1,0 +1,303 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 263 85% 64%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 220 90% 65%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 263 85% 64%;
+
+    --radius: 0.75rem;
+
+    /* Custom CareerAI Design Tokens */
+    --heading: 222.2 84% 4.9%;
+    --gradient-primary: linear-gradient(135deg, hsl(263, 85%, 64%), hsl(280, 90%, 70%));
+    --gradient-accent: linear-gradient(135deg, hsl(220, 90%, 65%), hsl(240, 85%, 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(263, 85%, 64%), hsl(220, 90%, 65%), hsl(280, 90%, 70%));
+    --gradient-card: linear-gradient(135deg, hsl(0, 0%, 100%), hsl(220, 30%, 98%));
+    
+    /* Shadows */
+    --shadow-smooth: 0 4px 20px -2px hsl(263, 85%, 64%, 0.1);
+    --shadow-floating: 0 10px 40px -4px hsl(263, 85%, 64%, 0.15);
+    --shadow-glow: 0 0 30px hsl(263, 85%, 64%, 0.3);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 263 85% 64%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 220 90% 65%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263 85% 64%;
+
+    /* Dark mode custom tokens */
+    --heading: 210 40% 98%;
+    --gradient-primary: linear-gradient(135deg, hsl(263, 85%, 64%), hsl(280, 90%, 70%));
+    --gradient-accent: linear-gradient(135deg, hsl(220, 90%, 65%), hsl(240, 85%, 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(263, 85%, 64%), hsl(220, 90%, 65%), hsl(280, 90%, 70%));
+    --gradient-card: linear-gradient(135deg, hsl(217.2, 32.6%, 17.5%), hsl(220, 20%, 20%));
+    
+    --shadow-smooth: 0 4px 20px -2px hsl(0, 0%, 0%, 0.3);
+    --shadow-floating: 0 10px 40px -4px hsl(0, 0%, 0%, 0.4);
+    --shadow-glow: 0 0 30px hsl(263, 85%, 64%, 0.4);
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* AI-themed animations */
+  .ai-pulse {
+    animation: ai-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .ai-float {
+    animation: ai-float 6s ease-in-out infinite;
+  }
+
+  .ai-glow {
+    animation: ai-glow 2s ease-in-out infinite alternate;
+  }
+
+  /* Background gradients */
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .bg-gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+
+  /* Shadows */
+  .shadow-smooth {
+    box-shadow: var(--shadow-smooth);
+  }
+
+  .shadow-floating {
+    box-shadow: var(--shadow-floating);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Typography */
+  .text-heading {
+    color: hsl(var(--heading));
+  }
+
+  /* Interactive elements */
+  .hover-lift {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-floating);
+  }
+
+  /* Mobile navigation */
+  .mobile-menu {
+    @apply fixed inset-x-0 top-[73px] z-50 bg-background/95 backdrop-blur-xl border-b border-border/50 lg:hidden;
+  }
+
+  /* Sticky navigation */
+  .nav-sticky {
+    @apply sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/50;
+  }
+}
+
+@layer utilities {
+  /* Z-index utilities */
+  .z-above-bg {
+    z-index: 10;
+  }
+
+  .z-content {
+    z-index: 20;
+  }
+
+  .z-header {
+    z-index: 40;
+  }
+
+  .z-modal {
+    z-index: 50;
+  }
+
+  /* Responsive text sizes */
+  .text-hero {
+    @apply text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl;
+  }
+
+  .text-display {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  /* Animation keyframes */
+  @keyframes ai-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes ai-float {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-20px) rotate(5deg);
+    }
+  }
+
+  @keyframes ai-glow {
+    from {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    }
+    to {
+      box-shadow: 0 0 30px hsl(var(--primary) / 0.5);
+    }
+  }
+
+  /* Smooth scrolling for anchor links */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Focus styles for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Smooth text rendering */
+  .text-rendering-optimized {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Glass morphism effect */
+  .glass-morphism {
+    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Loading animation */
+  .loading-pulse {
+    animation: loading-pulse 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes loading-pulse {
+    0% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  /* Improved mobile touch targets */
+  @media (max-width: 768px) {
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+}

@@ -1,0 +1,11 @@
+﻿venv/
+__pycache__/
+*.pyc
+.env
+*.json
+jupyter_nb/
+notebooks/
+*.pkl
+node_modules/
+.DS_Store
+backend/.git/
