@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -11,35 +12,64 @@ load_dotenv()
 client = Groq()
 
 def generate_careers():
-    print("🚀 Calling Groq API to generate 400 diverse careers in batches...")
-    
-    batches = [
-        "Technology, Software Engineering, IT",
-        "Hardware, Electronics, Robotics",
-        "Medicine, Healthcare",
-        "Psychology, Nursing, Therapy",
-        "Business, Management, Entrepreneurship",
-        "Finance, Accounting, Marketing",
-        "Science, Research, Mathematics",
-        "Data Science, Artificial Intelligence",
-        "Arts, Entertainment, Content Creation",
-        "Trades, Agriculture, Manufacturing"
-    ]
-    
-    import time
-    import re
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_path = os.path.join(script_dir, "careers.json")
+
+    # 1. Load existing careers.json
     all_careers = []
     seen_names = set()
+    
+    if os.path.exists(output_path):
+        with open(output_path, "r", encoding="utf-8") as f:
+            try:
+                all_careers = json.load(f)
+                for career in all_careers:
+                    name = career.get("name", "").strip()
+                    if name:
+                        seen_names.add(name.lower())
+                print(f"✅ Loaded {len(all_careers)} existing careers from careers.json")
+            except Exception as e:
+                print(f"❌ Error loading existing careers: {e}")
 
-    for i, domains in enumerate(batches, 1):
-        print(f"\n📦 Processing Batch {i}/10: {domains}")
+    # 2. Define specific underrepresented domains and careers
+    batches = [
+        {
+            "name": "Sports",
+            "careers": "Cricketer, Footballer, Basketball Player, Tennis Player, Swimmer, Sprinter, Wrestler, Hockey Player, Badminton Player, Sports Coach, Sports Manager, Sports Analyst, Sports Commentator, Esports Player, Sports Physiotherapist"
+        },
+        {
+            "name": "Music & Performing Arts",
+            "careers": "Classical Musician, Singer, Music Producer, Music Composer, Music Director, Tabla Player, Vocalist, Guitarist, Music Therapist, Sound Engineer, Lyricist, Music Teacher"
+        },
+        {
+            "name": "Entertainment & Film",
+            "careers": "Actor, Film Director, Screenwriter, Cinematographer, Film Producer, Casting Director, Stunt Performer, Voice Artist, Comedian, Stand-up Comedian, Theater Artist, Dance Choreographer"
+        },
+        {
+            "name": "Specialized Journalism",
+            "careers": "Political Journalist, Sports Journalist, Investigative Journalist, War Correspondent, Environmental Journalist, Tech Journalist, Food Critic, Travel Writer, Photo Journalist"
+        },
+        {
+            "name": "Politics & Civil Services",
+            "careers": "Politician, IAS Officer, IPS Officer, Diplomat, Civil Servant, Policy Analyst, Political Analyst, Government Administrator"
+        }
+    ]
+
+    print(f"🚀 Calling Groq API to generate new careers for {len(batches)} batches...")
+    
+    new_added = 0
+
+    for i, batch in enumerate(batches, 1):
+        batch_name = batch["name"]
+        career_list = batch["careers"]
+        print(f"\n📦 Processing Batch {i}/{len(batches)}: {batch_name}")
         
         prompt = f"""
-        Please generate exactly 35 diverse career options strictly from the following domains:
-        {domains}
+        Please generate the details specifically for the following careers in the {batch_name} domain:
+        {career_list}
         
         For each career, provide exactly two fields:
-        - "name": The title of the career.
+        - "name": The title of the career (use the exact name provided above).
         - "description": One rich sentence explaining what the career involves and what kind of person suits it.
         
         IMPORTANT INSTRUCTIONS:
@@ -49,8 +79,7 @@ def generate_careers():
         
         Example format:
         [
-            {{"name": "Software Engineer", "description": "Software engineers design, develop, and maintain software applications, suited for logical thinkers who enjoy solving complex problems."}},
-            {{"name": "Professional Athlete", "description": "Professional athletes train and compete in sports at the highest level, suited for highly disciplined individuals with exceptional physical abilities and competitive drive."}}
+            {{"name": "Career Name", "description": "Career description goes here."}}
         ]
         """
 
@@ -95,6 +124,7 @@ def generate_careers():
                     seen_names.add(name.lower())
                     all_careers.append(career)
                     added_this_batch += 1
+                    new_added += 1
             
             print(f"✅ Batch {i} complete: Parsed {len(careers_data)} careers, added {added_this_batch} new unique careers.")
 
@@ -119,6 +149,7 @@ def generate_careers():
                             seen_names.add(name.lower())
                             all_careers.append(career)
                             added_this_batch += 1
+                            new_added += 1
                     print(f"✅ Recovered Partial Batch {i}: Added {added_this_batch} new careers.")
                 except Exception as inner_e:
                     print(f"❌ Recovery failed: {inner_e}")
@@ -128,17 +159,15 @@ def generate_careers():
             print(f"❌ An error occurred in batch {i}: {e}")
             
         # Avoid hitting Groq API rate limits
-        print("⏳ Sleeping for 5 seconds to avoid rate limits...")
-        time.sleep(5)
-
-    # Get the absolute path for careers.json in the backend directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_path = os.path.join(script_dir, "careers.json")
+        if i < len(batches):
+            print("⏳ Sleeping for 5 seconds to avoid rate limits...")
+            time.sleep(5)
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_careers, f, indent=4, ensure_ascii=False)
 
-    print(f"\n🎉 Success! Saved a total of {len(all_careers)} unique careers to {output_path}")
+    print(f"\n🎉 Success! Added {new_added} new careers.")
+    print(f"📈 Total careers now available: {len(all_careers)} (saved to {output_path})")
 
 if __name__ == "__main__":
     generate_careers()

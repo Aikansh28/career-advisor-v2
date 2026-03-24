@@ -198,7 +198,7 @@ export function CareerRecommendations() {
             const IconComponent = getCategoryIcon(career.category);
             const colorClass = getCategoryColor(career.category);
             const matchPercentage = Math.round(career.similarity_score * 100);
-            const skills = parseSkills(career.in_demand_skills || career.core_skills);
+            const skills = parseSkills(career.key_skills || []);
             
             // DEBUG: Log each career being rendered
             console.log(`🎨 Rendering career ${index + 1}:`, career.career_name);
@@ -206,10 +206,10 @@ export function CareerRecommendations() {
             return (
               <Card 
                 key={`${career.career_name}-${career.similarity_score}-${index}`}
-                className="group hover:shadow-floating transition-all duration-300 cursor-pointer bg-white/70 dark:bg-gradient-card border-0 shadow-smooth hover-scale animate-fade-in"
+                className="group hover:shadow-floating transition-all duration-300 cursor-pointer bg-white/70 dark:bg-gradient-card border-0 shadow-smooth hover-scale animate-fade-in flex flex-col"
                 style={{animationDelay: `${0.1 * (index + 1)}s`}}
               >
-                <CardHeader className="space-y-4">
+                <CardHeader className="space-y-4 pb-4">
                   <div className="flex items-start justify-between">
                     <div className={`w-14 h-14 rounded-2xl ${colorClass} flex items-center justify-center shadow-smooth group-hover:scale-110 transition-transform duration-300`}>
                       <IconComponent className="w-7 h-7 text-white" />
@@ -226,28 +226,34 @@ export function CareerRecommendations() {
                     <CardTitle className="text-xl font-bold text-heading group-hover:text-primary transition-colors duration-200 mb-2">
                       {career.career_name}
                     </CardTitle>
-                    <div className="w-full bg-muted rounded-full h-2 mb-3">
+                    <div className="w-full bg-muted rounded-full h-2 mb-2">
                       <div 
                         className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(career.similarity_score)}`}
                         style={{ width: `${matchPercentage}%` }}
                       />
                     </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                      {career.description}
+                    </p>
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {career.description}
-                  </p>
-                  
-                  <div className="space-y-3">
+                <CardContent className="space-y-6 flex-1 flex flex-col justify-between pt-0">
+                  <div className="space-y-4">
                     <div>
-                      <div className="text-sm font-medium text-heading mb-2">Key Skills</div>
+                      <div className="text-sm font-semibold text-heading mb-1">Why This Suits You</div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {career.why_suited || "Well aligned with your skills and education."}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <div className="text-sm font-semibold text-heading mb-2">Key Skills</div>
                       <div className="flex flex-wrap gap-2">
-                        {skills.slice(0, 3).map((skill: string, idx: number) => (
+                        {skills.slice(0, 5).map((skill: string, idx: number) => (
                           <span 
                             key={`${skill}-${idx}`}
-                            className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full"
+                            className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-medium rounded-full"
                           >
                             {skill}
                           </span>
@@ -255,30 +261,36 @@ export function CareerRecommendations() {
                       </div>
                     </div>
                     
-                    <div>
-                      <div className="text-sm font-medium text-heading mb-1">Expected Salary</div>
-                      <div className="text-lg font-semibold text-accent">
-                        {career.expected_salary || 'Contact for details'}
+                    {career.education_gap && career.education_gap.toLowerCase() !== "none" && (
+                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Education Gap</span>
+                        </div>
+                        <p className="text-sm text-amber-700 dark:text-amber-300/90 leading-snug">
+                          {career.education_gap}
+                        </p>
                       </div>
-                    </div>
+                    )}
                   </div>
                   
-                  <Button 
-                    className="w-full bg-gradient-primary hover:opacity-90 transition-all duration-200 shadow-smooth group-hover:shadow-floating"
-                    onClick={() => {
-                      console.log('🗺️ Navigating to roadmap for:', career.career_name);
-                      // Store selected career in userData for roadmap page
-                      navigate('/roadmap', { 
-                        state: { 
-                          career: career,
-                          hasRoadmap: index === 0  // Only first career has roadmap
-                        } 
-                      });
-                    }}
-                  >
-                    <span>View {index === 0 ? 'Roadmap' : 'Details'}</span>
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-                  </Button>
+                  <div className="pt-6 mt-auto">
+                    <Button 
+                      className="w-full bg-gradient-primary hover:opacity-90 transition-all duration-200 shadow-smooth group-hover:shadow-floating"
+                      onClick={() => {
+                        console.log('🗺️ Navigating to roadmap for:', career.career_name);
+                        // Store selected career in userData for roadmap page
+                        navigate('/roadmap', { 
+                          state: { 
+                            career: career,
+                            hasRoadmap: true
+                          } 
+                        });
+                      }}
+                    >
+                      <span>View Roadmap</span>
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );

@@ -49,7 +49,7 @@ export const CareerRoadmap: React.FC<CareerRoadmapProps> = ({
       ];
     }
 
-    const rawSkills = careerData.core_skills || careerData.in_demand_skills || [];
+    const rawSkills = careerData.key_skills || [];
     const skillList = Array.isArray(rawSkills) 
       ? rawSkills 
       : (typeof rawSkills === 'string' ? rawSkills.split(',').map((s: string) => s.trim()) : []);
@@ -99,41 +99,15 @@ export const CareerRoadmap: React.FC<CareerRoadmapProps> = ({
       // Try to extract provider from parentheses if present, e.g. "Course Name (Provider)"
       const match = res.match(/(.*?)\s*\((.*?)\)/);
       return {
-        title: match ? match[1] : res,
-        description: `Comprehensive guide to ${match ? match[1] : res}`,
-        provider: match ? match[2] : "Online Course",
+        title: match ? match[1].trim() : res.trim(),
+        description: `Comprehensive resource for ${match ? match[1].trim() : res.trim()}`,
+        provider: match ? match[2].trim() : "Recommended",
         duration: "Self-paced"
       };
     });
   };
 
   const learningResources = parseResources();
-
-  // Parse job roles / growth path
-  const parseJobRoles = () => {
-    if (!careerData) {
-      return [
-        { title: "Junior Data Scientist", salary: "$70,000 - $95,000", experience: "0-2 years" },
-        { title: "Data Scientist", salary: "$95,000 - $130,000", experience: "2-5 years" },
-        { title: "Senior Data Scientist", salary: "$130,000 - $180,000", experience: "5+ years" }
-      ];
-    }
-
-    const growthPath = careerData.growth_path || "";
-    // Growth path might be "Role A -> Role B -> Role C"
-    const roles = growthPath.split(/->|→/).map((r: string) => r.trim());
-    
-    // Create salary ranges based on the expected_salary string potentially
-    const baseSalary = careerData.expected_salary || "Competitve";
-
-    return roles.map((role: string, index: number) => ({
-      title: role,
-      salary: index === 0 ? baseSalary : "Higher", // Placeholder
-      experience: `${index * 2}-${(index + 1) * 2 + 1} years`
-    }));
-  };
-
-  const jobRoles = parseJobRoles();
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -206,6 +180,45 @@ export const CareerRoadmap: React.FC<CareerRoadmapProps> = ({
 
         <Separator className="my-10" />
 
+        {/* Personalized Roadmap */}
+        {careerData?.roadmap && (
+          <section className="mb-10">
+            <div className="flex items-center mb-6">
+              <span className="w-6 h-6 text-primary mr-3 flex items-center justify-center font-bold text-xl">🗺️</span>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                Your Personalized Roadmap
+              </h2>
+            </div>
+            
+            <div className="space-y-4">
+              {Array.isArray(careerData.roadmap) ? (
+                careerData.roadmap.map((step: string, index: number) => (
+                  <Card key={index} className="transition-all duration-200 hover:shadow-md">
+                    <CardContent className="p-6 flex items-start">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold mr-4">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-800 dark:text-gray-200 leading-relaxed pt-1">
+                        {step}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card className="transition-all duration-200">
+                  <CardContent className="p-6">
+                    <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                      {careerData.roadmap}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </section>
+        )}
+
+        <Separator className="my-10" />
+
         {/* Learning Resources */}
         <section className="mb-10">
           <div className="flex items-center mb-6">
@@ -243,32 +256,37 @@ export const CareerRoadmap: React.FC<CareerRoadmapProps> = ({
 
         <Separator className="my-10" />
 
-        {/* Job Roles & Salaries */}
+        {/* Career Insights */}
         <section className="mb-10">
           <div className="flex items-center mb-6">
-            <DollarSign className="w-6 h-6 text-primary mr-3" />
+            <Target className="w-6 h-6 text-primary mr-3" />
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Job Roles & Salaries
+              Career Insights
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            {jobRoles.map((role, index) => (
-              <Card key={index} className="text-center">
-                <CardHeader>
-                  <CardTitle className="text-lg">{role.title}</CardTitle>
-                  <CardDescription>{role.experience}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary mb-2">
-                    {role.salary}
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Average annual salary
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Why This Suits You</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-md">
+                  {careerData?.why_suited || "Well aligned with your skills and education."}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Education Gap</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-md">
+                  {careerData?.education_gap || "None."}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
@@ -286,13 +304,7 @@ export const CareerRoadmap: React.FC<CareerRoadmapProps> = ({
           <Card>
             <CardContent className="p-8">
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
-                {careerData?.future_scope || (
-                  careerData ? (
-                    <>
-                      The field of <strong>{careerData.career_name}</strong> within the <strong>{careerData.category}</strong> sector creates significant value in the modern economy. {careerData.description} With the continuous evolution of technology and industry practices, professionals in this domain can expect a robust career trajectory, typically advancing through roles such as: <strong>{careerData.growth_path}</strong>.
-                    </>
-                  ) : "Future scope information is currently unavailable for this career path."
-                )}
+                {careerData?.future_scope || "Future scope information is currently unavailable for this career path."}
               </p>
             </CardContent>
           </Card>

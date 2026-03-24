@@ -181,7 +181,7 @@ def home():
         "status": "healthy"
     }
 
-@app.post("/recommend")
+@app.post("/recommend-career")
 def recommend_career(profile: StudentProfile):
     """
     Find top 5 careers based on embedding cosine similarity 

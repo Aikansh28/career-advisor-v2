@@ -78,6 +78,8 @@ export function CareerAssessment() {
   });
   const [customSkill, setCustomSkill] = useState('');
   const [showCustomSkill, setShowCustomSkill] = useState(false);
+  const [customSubject, setCustomSubject] = useState('');
+  const [showCustomSubject, setShowCustomSubject] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,7 +95,9 @@ export function CareerAssessment() {
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
     'English', 'History', 'Economics', 'Business Studies', 'Accounting',
     'Psychology', 'Political Science', 'Geography', 'Statistics', 'Engineering',
-    'Law', 'Art & Design', 'Medicine', 'Nursing', 'Education'
+  'Law', 'Art & Design', 'Medicine', 'Nursing', 'Education',
+  'Physical Education', 'Music', 'Fine Arts', 'Drama & Theater',
+  'Home Science', 'Agriculture', 'Environmental Science'
   ];
 
   const handleSkillToggle = (skill: string) => {
@@ -122,6 +126,17 @@ export function CareerAssessment() {
       }));
       setCustomSkill('');
       setShowCustomSkill(false);
+    }
+  };
+
+  const handleAddCustomSubject = () => {
+    if (customSubject.trim() && !formData.subjects.includes(customSubject.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        subjects: [...prev.subjects, customSubject.trim()]
+      }));
+      setCustomSubject('');
+      setShowCustomSubject(false);
     }
   };
 
@@ -323,6 +338,62 @@ export function CareerAssessment() {
                       {subject}
                     </Button>
                   ))}
+                  
+                  {formData.subjects
+                    .filter(subject => !predefinedSubjects.includes(subject))
+                    .map((subject) => (
+                    <Button
+                      key={subject}
+                      type="button"
+                      variant="default"
+                      onClick={() => handleSubjectToggle(subject)}
+                      className="bg-gradient-primary text-white group"
+                    >
+                      {subject}
+                      <X className="w-3 h-3 ml-2 opacity-60 group-hover:opacity-100" />
+                    </Button>
+                  ))}
+                  
+                  {!showCustomSubject ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowCustomSubject(true)}
+                      className="border-dashed hover:bg-muted/60"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Custom Subject
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={customSubject}
+                        onChange={(e) => setCustomSubject(e.target.value)}
+                        placeholder="Enter subject"
+                        className="w-40 h-9"
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddCustomSubject()}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleAddCustomSubject}
+                        disabled={!customSubject.trim()}
+                      >
+                        Add
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowCustomSubject(false);
+                          setCustomSubject('');
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
