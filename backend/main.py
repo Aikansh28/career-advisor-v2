@@ -15,6 +15,7 @@ from groq import Groq
 # -------------------------
 # Environment & Setup
 # -------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv()
 
 # Initialize Groq client
@@ -55,25 +56,27 @@ def get_data():
     global career_embeddings_dict, careers_lookup
     if career_embeddings_dict is None or careers_lookup is None:
         print("📂 Loading careers data (Lazy Load)...")
-        script_dir = os.path.dirname(os.path.abspath(__file__))
         
         # 1. Load the description json
-        careers_json_path = os.path.join(script_dir, "careers.json")
+        careers_json_path = os.path.join(BASE_DIR, "careers.json")
         try:
             with open(careers_json_path, 'r', encoding='utf-8') as f:
                 careers_data = json.load(f)
             careers_lookup = {c["name"]: c["description"] for c in careers_data}
-        except Exception as e:
-            print(f"❌ Error loading careers.json: {e}")
-            careers_lookup = {}
             
-        # 2. Load the embeddings pkl
-        embeddings_path = os.path.join(script_dir, "careers_embeddings.pkl")
-        try:
-            with open(embeddings_path, 'rb') as f:
-                career_embeddings_dict = pickle.load(f)
+            # 2. Generate embeddings dynamically
+            print("🧠 Generating embeddings dynamically...")
+            model = get_model()
+            career_names = [c["name"] for c in careers_data]
+            career_texts = [c["description"] for c in careers_data]
+            embeddings = model.encode(career_texts)
+            
+            career_embeddings_dict = {name: embedding for name, embedding in zip(career_names, embeddings)}
+            print("✅ Dynamic embeddings generated successfully!")
+            
         except Exception as e:
-            print(f"❌ Error loading embeddings: {e}")
+            print(f"❌ Error loading careers.json or generating embeddings: {e}")
+            careers_lookup = {}
             career_embeddings_dict = {}
             
     return career_embeddings_dict, careers_lookup
