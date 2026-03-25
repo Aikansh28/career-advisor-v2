@@ -32,42 +32,51 @@ class StudentProfile(BaseModel):
     goals: Optional[str] = ""
 
 # -------------------------
-# Globals & Startup Loading
+# Globals (Lazy Loaded)
 # -------------------------
-print("📦 Loading Hugging Face embedding model...")
-try:
-    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-    print("✅ Embedding model loaded successfully!")
-except Exception as e:
-    print(f"❌ Error loading embedding model: {e}")
-    embedding_model = None
+embedding_model = None
+career_embeddings_dict = None
+careers_lookup = None
 
-# Load careers dictionaries locally
-script_dir = os.path.dirname(os.path.abspath(__file__))
+def get_model():
+    global embedding_model
+    if embedding_model is None:
+        print("📦 Loading Hugging Face embedding model (Lazy Load)...")
+        try:
+            from sentence_transformers import SentenceTransformer
+            embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+            print("✅ Embedding model loaded successfully!")
+        except Exception as e:
+            print(f"❌ Error loading embedding model: {e}")
+            raise HTTPException(status_code=500, detail="Failed to load embedding model.")
+    return embedding_model
 
-# 1. Load the description json
-careers_json_path = os.path.join(script_dir, "careers.json")
-try:
-    print(f"📂 Loading careers descriptions from {careers_json_path}...")
-    with open(careers_json_path, 'r', encoding='utf-8') as f:
-        careers_data = json.load(f)
-    # Create lookup dict for faster access
-    careers_lookup = {c["name"]: c["description"] for c in careers_data}
-    print(f"✅ Loaded {len(careers_lookup)} careers descriptions")
-except Exception as e:
-    print(f"❌ Error loading careers.json: {e}")
-    careers_lookup = {}
-
-# 2. Load the embeddings pkl
-embeddings_path = os.path.join(script_dir, "careers_embeddings.pkl")
-try:
-    print(f"📂 Loading career embeddings from {embeddings_path}...")
-    with open(embeddings_path, 'rb') as f:
-        career_embeddings_dict = pickle.load(f)
-    print(f"✅ Loaded {len(career_embeddings_dict)} career embeddings")
-except Exception as e:
-    print(f"❌ Error loading embeddings: {e}")
-    career_embeddings_dict = {}
+def get_data():
+    global career_embeddings_dict, careers_lookup
+    if career_embeddings_dict is None or careers_lookup is None:
+        print("📂 Loading careers data (Lazy Load)...")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # 1. Load the description json
+        careers_json_path = os.path.join(script_dir, "careers.json")
+        try:
+            with open(careers_json_path, 'r', encoding='utf-8') as f:
+                careers_data = json.load(f)
+            careers_lookup = {c["name"]: c["description"] for c in careers_data}
+        except Exception as e:
+            print(f"❌ Error loading careers.json: {e}")
+            careers_lookup = {}
+            
+        # 2. Load the embeddings pkl
+        embeddings_path = os.path.join(script_dir, "careers_embeddings.pkl")
+        try:
+            with open(embeddings_path, 'rb') as f:
+                career_embeddings_dict = pickle.load(f)
+        except Exception as e:
+            print(f"❌ Error loading embeddings: {e}")
+            career_embeddings_dict = {}
+            
+    return career_embeddings_dict, careers_lookup
 
 # -------------------------
 # FastAPI app with CORS
@@ -99,7 +108,8 @@ def generate_student_embedding(profile: StudentProfile):
         f"Goals: {profile.goals if profile.goals else 'None'}"
     )
     
-    embedding = embedding_model.encode(text_input, convert_to_numpy=True)
+    model = get_model()
+    embedding = model.encode(text_input, convert_to_numpy=True)
     return np.array(embedding, dtype=np.float32)
 
 def generate_career_details_with_groq(profile: StudentProfile, career_name: str, career_desc: str):
@@ -187,16 +197,20 @@ def recommend_career(profile: StudentProfile):
     Find top 5 careers based on embedding cosine similarity 
     and fetch full roadmaps using Groq for each.
     """
-    if embedding_model is None or not career_embeddings_dict:
-        raise HTTPException(status_code=500, detail="Models or embeddings not loaded.")
-
     try:
+        # Load models and data lazily
+        get_model()
+        embeddings_dict, lookups = get_data()
+
+        if not embeddings_dict or not lookups:
+            raise HTTPException(status_code=500, detail="Data could not be loaded.")
+
         # 1. Embed student
         student_vec = generate_student_embedding(profile)
 
         # 2. Extract careers and vectors for matching
-        career_names = list(career_embeddings_dict.keys())
-        career_vectors_array = np.vstack(list(career_embeddings_dict.values()))
+        career_names = list(embeddings_dict.keys())
+        career_vectors_array = np.vstack(list(embeddings_dict.values()))
 
         # 3. Compute cosine similarities
         sims = cosine_similarity([student_vec], career_vectors_array)[0]
@@ -209,7 +223,7 @@ def recommend_career(profile: StudentProfile):
         for idx in top_indices:
             career_name = career_names[idx]
             match_score = float(sims[idx])
-            career_desc = careers_lookup.get(career_name, "No description available.")
+            career_desc = lookups.get(career_name, "No description available.")
 
             print(f"🗺️  Consulting Groq for: {career_name} (Score: {match_score:.3f})")
             groq_details = generate_career_details_with_groq(profile, career_name, career_desc)
