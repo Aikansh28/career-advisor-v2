@@ -1,8 +1,8 @@
 // src/lib/api.ts
 import axios from 'axios';
 
-// Backend API URL - Change this if your backend is on a different port
-const API_BASE_URL = 'http://localhost:8000';
+// Backend API URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 // -------------------------
 // Type Definitions
@@ -68,7 +68,7 @@ export async function getCareerRecommendations(
 
     // Make POST request to backend
     const response = await axios.post<RecommendationResponse>(
-      `${API_BASE_URL}/recommend-career`,
+      `${API_URL}/recommend-career`,
       studentProfile,
       {
         headers: {
@@ -95,7 +95,7 @@ export async function getCareerRecommendations(
         // Request was made but no response received
         console.error('Network error:', error.message);
         throw new Error(
-          'Could not connect to the career advisor service. Please make sure the backend is running on http://localhost:8000'
+          `Could not connect to the career advisor service. Please make sure the backend is running on ${API_URL}`
         );
       }
     }
@@ -111,7 +111,7 @@ export async function getCareerRecommendations(
  */
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const response = await axios.get(`${API_BASE_URL}/health`, {
+    const response = await axios.get(`${API_URL}/health`, {
       timeout: 5000,
     });
     return response.data.status === 'healthy';
