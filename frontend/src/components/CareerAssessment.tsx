@@ -251,7 +251,7 @@ export function CareerAssessment() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      <main className="max-w-3xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
             <Sparkles className="w-4 h-4" />
@@ -265,7 +265,7 @@ export function CareerAssessment() {
           </p>
         </div>
 
-        <Card className="bg-gradient-card border-0 shadow-floating">
+        <Card className="bg-white dark:bg-slate-900 shadow-md rounded-2xl border border-slate-200 dark:border-slate-800">
           <CardContent className="p-8 md:p-12">
             <form onSubmit={handleSubmit} className="space-y-10">
               {error && (
