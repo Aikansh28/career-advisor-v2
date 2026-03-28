@@ -257,10 +257,10 @@ export function CareerAssessment() {
             <Sparkles className="w-4 h-4" />
             <span>Step 1 of 1</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-heading mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">
             Tell us about yourself
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
             Help us understand your background and preferences to provide personalized career recommendations
           </p>
         </div>
@@ -277,7 +277,7 @@ export function CareerAssessment() {
 
               {/* Name Field */}
               <div className="space-y-4">
-                <Label htmlFor="name" className="text-lg font-semibold text-heading">
+                <Label htmlFor="name" className="text-base font-semibold text-slate-900 dark:text-white">
                   What's your name?
                 </Label>
                 <Input
@@ -292,7 +292,7 @@ export function CareerAssessment() {
 
               {/* Education Level */}
               <div className="space-y-4">
-                <Label className="text-lg font-semibold text-heading">
+                <Label className="text-base font-semibold text-slate-900 dark:text-white">
                   What's your education level?
                 </Label>
                 <Select 
@@ -316,10 +316,10 @@ export function CareerAssessment() {
 
               {/* Subjects */}
               <div className="space-y-5">
-                <Label className="text-lg font-semibold text-heading">
+                <Label className="text-base font-semibold text-slate-900 dark:text-white">
                   What subjects have you studied?
                 </Label>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Select all relevant subjects from your education
                 </p>
                 
@@ -399,10 +399,10 @@ export function CareerAssessment() {
 
               {/* Skills */}
               <div className="space-y-5">
-                <Label className="text-lg font-semibold text-heading">
+                <Label className="text-base font-semibold text-slate-900 dark:text-white">
                   What are your key skills?
                 </Label>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Select all that apply or add your own
                 </p>
                 
@@ -482,10 +482,10 @@ export function CareerAssessment() {
 
               {/* Interests */}
               <div className="space-y-5">
-                <Label className="text-lg font-semibold text-heading">
+                <Label className="text-base font-semibold text-slate-900 dark:text-white">
                   What are your interests?
                 </Label>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Choose areas that excite you and align with your passions
                 </p>
                 
@@ -524,10 +524,10 @@ export function CareerAssessment() {
 
               {/* Career Goals */}
               <div className="space-y-5">
-                <Label htmlFor="goals" className="text-lg font-semibold text-heading">
+                <Label htmlFor="goals" className="text-base font-semibold text-slate-900 dark:text-white">
                   What are your career goals?
                 </Label>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Tell us about your aspirations, dream job, or what you want to achieve in your career
                 </p>
                 
@@ -561,7 +561,7 @@ export function CareerAssessment() {
                     </>
                   )}
                 </Button>
-                <p className="text-sm text-muted-foreground mt-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
                   Your assessment will be processed instantly using AI
                 </p>
               </div>
