@@ -267,7 +267,7 @@ export function CareerAssessment() {
 
         <Card className="bg-white dark:bg-slate-900 shadow-md rounded-2xl border border-slate-200 dark:border-slate-800">
           <CardContent className="p-8 md:p-12">
-            <form onSubmit={handleSubmit} className="space-y-10">
+            <form onSubmit={handleSubmit} className="space-y-12 md:space-y-14">
               {error && (
                 <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
                   <p className="font-medium">Error</p>
@@ -276,7 +276,7 @@ export function CareerAssessment() {
               )}
 
               {/* Name Field */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Label htmlFor="name" className="text-lg font-semibold text-heading">
                   What's your name?
                 </Label>
@@ -291,7 +291,7 @@ export function CareerAssessment() {
               </div>
 
               {/* Education Level */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Label className="text-lg font-semibold text-heading">
                   What's your education level?
                 </Label>
@@ -315,7 +315,7 @@ export function CareerAssessment() {
               </div>
 
               {/* Subjects */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <Label className="text-lg font-semibold text-heading">
                   What subjects have you studied?
                 </Label>
@@ -398,7 +398,7 @@ export function CareerAssessment() {
               </div>
 
               {/* Skills */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <Label className="text-lg font-semibold text-heading">
                   What are your key skills?
                 </Label>
@@ -481,7 +481,7 @@ export function CareerAssessment() {
               </div>
 
               {/* Interests */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <Label className="text-lg font-semibold text-heading">
                   What are your interests?
                 </Label>
@@ -523,7 +523,7 @@ export function CareerAssessment() {
               </div>
 
               {/* Career Goals */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <Label htmlFor="goals" className="text-lg font-semibold text-heading">
                   What are your career goals?
                 </Label>
@@ -542,7 +542,7 @@ export function CareerAssessment() {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-8 text-center">
+              <div className="pt-10 pb-4 text-center">
                 <Button
                   type="submit"
                   size="lg"
