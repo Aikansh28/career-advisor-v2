@@ -546,7 +546,7 @@ export function CareerAssessment() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="bg-gradient-primary hover:opacity-90 transition-all duration-200 shadow-floating ai-glow text-lg px-12 py-4 h-auto"
+                  className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 rounded-xl px-10 py-4 h-auto text-base font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 ease-out"
                   disabled={isLoading || !formData.name || !formData.education || formData.skills.length === 0 || formData.interests.length === 0 || formData.subjects.length === 0 || !formData.goals.trim()}
                 >
                   {isLoading ? (
