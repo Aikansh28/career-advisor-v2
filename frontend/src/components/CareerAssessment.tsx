@@ -253,7 +253,7 @@ export function CareerAssessment() {
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium mb-6 shadow-sm">
             <Sparkles className="w-4 h-4" />
             <span>Step 1 of 1</span>
           </div>
@@ -265,7 +265,7 @@ export function CareerAssessment() {
           </p>
         </div>
 
-        <Card className="bg-white dark:bg-slate-900 shadow-md rounded-2xl border border-slate-200 dark:border-slate-800">
+        <Card className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/40 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800">
           <CardContent className="p-8 md:p-12">
             <form onSubmit={handleSubmit} className="space-y-12 md:space-y-14">
               {error && (
@@ -331,9 +331,9 @@ export function CareerAssessment() {
                       variant={formData.subjects.includes(subject) ? "default" : "outline"}
                       onClick={() => handleSubjectToggle(subject)}
                       className={`${formData.subjects.includes(subject) 
-                        ? 'bg-gradient-primary text-white' 
-                        : 'hover:bg-muted/60'
-                      } transition-all duration-200`}
+                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm hover:opacity-90' 
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm'
+                      } transition-all duration-300 ease-out`}
                     >
                       {subject}
                     </Button>
@@ -347,7 +347,7 @@ export function CareerAssessment() {
                       type="button"
                       variant="default"
                       onClick={() => handleSubjectToggle(subject)}
-                      className="bg-gradient-primary text-white group"
+                      className="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm group hover:opacity-90 transition-all duration-300 ease-out"
                     >
                       {subject}
                       <X className="w-3 h-3 ml-2 opacity-60 group-hover:opacity-100" />
@@ -359,7 +359,7 @@ export function CareerAssessment() {
                       type="button"
                       variant="outline"
                       onClick={() => setShowCustomSubject(true)}
-                      className="border-dashed hover:bg-muted/60"
+                      className="border-dashed hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 transition-all duration-300 ease-out"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Custom Subject
@@ -414,9 +414,9 @@ export function CareerAssessment() {
                       variant={formData.skills.includes(skill) ? "default" : "outline"}
                       onClick={() => handleSkillToggle(skill)}
                       className={`${formData.skills.includes(skill) 
-                        ? 'bg-gradient-primary text-white' 
-                        : 'hover:bg-muted/60'
-                      } transition-all duration-200`}
+                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm hover:opacity-90' 
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm'
+                      } transition-all duration-300 ease-out`}
                     >
                       {skill}
                     </Button>
@@ -430,7 +430,7 @@ export function CareerAssessment() {
                       type="button"
                       variant="default"
                       onClick={() => handleSkillToggle(skill)}
-                      className="bg-gradient-primary text-white group"
+                      className="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm group hover:opacity-90 transition-all duration-300 ease-out"
                     >
                       {skill}
                       <X className="w-3 h-3 ml-2 opacity-60 group-hover:opacity-100" />
@@ -442,7 +442,7 @@ export function CareerAssessment() {
                       type="button"
                       variant="outline"
                       onClick={() => setShowCustomSkill(true)}
-                      className="border-dashed hover:bg-muted/60"
+                      className="border-dashed hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 transition-all duration-300 ease-out"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Custom Skill
@@ -497,22 +497,22 @@ export function CareerAssessment() {
                     return (
                       <Card
                         key={interest.id}
-                        className={`cursor-pointer transition-all duration-200 hover:shadow-smooth ${
+                        className={`cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md ${
                           isSelected 
-                            ? 'ring-2 ring-primary bg-primary/5 shadow-smooth' 
-                            : 'hover:bg-muted/50 bg-gradient-card'
+                            ? 'ring-2 ring-slate-900 dark:ring-slate-100 bg-slate-50 dark:bg-slate-800/50 shadow-sm' 
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800'
                         }`}
                         onClick={() => handleInterestToggle(interest.id)}
                       >
                         <CardContent className="p-6 text-center space-y-3">
-                          <div className={`w-12 h-12 rounded-xl ${interest.color} flex items-center justify-center shadow-smooth mx-auto ${
-                            isSelected ? 'scale-110' : 'group-hover:scale-105'
-                          } transition-transform duration-200`}>
+                          <div className={`w-12 h-12 rounded-xl ${interest.color} flex items-center justify-center shadow-sm mx-auto ${
+                            isSelected ? 'scale-110' : 'group-hover:scale-110'
+                          } transition-transform duration-300 ease-out`}>
                             <IconComponent className="w-6 h-6 text-white" />
                           </div>
                           <div className={`font-medium ${
-                            isSelected ? 'text-primary' : 'text-heading'
-                          } transition-colors duration-200`}>
+                            isSelected ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-600 dark:text-slate-400'
+                          } transition-colors duration-300`}>
                             {interest.name}
                           </div>
                         </CardContent>
