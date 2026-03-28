@@ -285,7 +285,7 @@ export function CareerAssessment() {
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter your full name"
-                  className="h-12 text-base"
+                  className="h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-background focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all text-base"
                   required
                 />
               </div>
@@ -299,7 +299,7 @@ export function CareerAssessment() {
                   value={formData.education} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, education: value }))}
                 >
-                  <SelectTrigger className="h-12 text-base">
+                  <SelectTrigger className="h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base">
                     <SelectValue placeholder="Select your education level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -370,7 +370,7 @@ export function CareerAssessment() {
                         value={customSubject}
                         onChange={(e) => setCustomSubject(e.target.value)}
                         placeholder="Enter subject"
-                        className="w-40 h-9"
+                        className="w-40 h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-background focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
                         onKeyPress={(e) => e.key === 'Enter' && handleAddCustomSubject()}
                       />
                       <Button
@@ -453,7 +453,7 @@ export function CareerAssessment() {
                         value={customSkill}
                         onChange={(e) => setCustomSkill(e.target.value)}
                         placeholder="Enter skill"
-                        className="w-40 h-9"
+                        className="w-40 h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-background focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
                         onKeyPress={(e) => e.key === 'Enter' && handleAddCustomSkill()}
                       />
                       <Button
@@ -536,7 +536,7 @@ export function CareerAssessment() {
                   value={formData.goals || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, goals: e.target.value }))}
                   placeholder="Example: I want to become a data scientist and work on AI projects that solve real-world problems..."
-                  className="w-full min-h-[120px] p-4 rounded-lg border border-input bg-background text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full min-h-[120px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   required
                 />
               </div>
