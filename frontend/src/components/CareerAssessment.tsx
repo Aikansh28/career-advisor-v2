@@ -1,20 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent } from './ui/card';
 import { useUser } from '../contexts/UserContext';
 import { getCareerRecommendations } from '@/lib/api';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
-import { 
-  BrainCircuit,
+import { emitParticles, getSubjectEncouragement, getSkillEncouragement, getInterestEncouragement, ThinkingOverlay, LiveProfileCard, ProgressNodes, ASSESSMENT_KEYFRAMES } from './CareerAssessmentHelpers';
+import {
   Computer,
   Palette,
   Building2,
@@ -27,7 +16,6 @@ import {
   Music,
   Camera,
   ChevronLeft,
-  Sparkles,
   Plus,
   GraduationCap,
   Scale,
@@ -35,46 +23,100 @@ import {
   Trophy,
   Leaf,
   Wrench,
-  X
+  X,
+  ArrowRight,
+  ArrowLeft,
+  Loader2,
 } from 'lucide-react';
 
+/* ─── Types ─── */
 interface Interest {
   id: string;
   name: string;
   icon: React.ElementType;
-  color: string;
+  emoji: string;
 }
 
-const interests: Interest[] = [
-  { id: 'tech', name: 'Technology', icon: Computer, color: 'bg-blue-500' },
-  { id: 'design', name: 'Design', icon: Palette, color: 'bg-purple-500' },
-  { id: 'business', name: 'Business', icon: Building2, color: 'bg-green-500' },
-  { id: 'healthcare', name: 'Healthcare', icon: Heart, color: 'bg-red-500' },
-  { id: 'science', name: 'Science', icon: Beaker, color: 'bg-cyan-500' },
-  { id: 'writing', name: 'Writing', icon: PenTool, color: 'bg-amber-500' },
-  { id: 'social', name: 'Social Work', icon: Users, color: 'bg-pink-500' },
-  { id: 'finance', name: 'Finance', icon: Calculator, color: 'bg-indigo-500' },
-  { id: 'international', name: 'International', icon: Globe, color: 'bg-teal-500' },
-  { id: 'arts', name: 'Arts', icon: Music, color: 'bg-orange-500' },
-  { id: 'media', name: 'Media', icon: Camera, color: 'bg-violet-500' },
-  { id: 'education', name: 'Education & Teaching', icon: GraduationCap, color: 'bg-yellow-500' },
-  { id: 'law', name: 'Law & Justice', icon: Scale, color: 'bg-gray-700' },
-  { id: 'research', name: 'Research & Academia', icon: FlaskConical, color: 'bg-emerald-500' },
-  { id: 'sports', name: 'Sports & Fitness', icon: Trophy, color: 'bg-rose-500' },
-  { id: 'environment', name: 'Environment & Sustainability', icon: Leaf, color: 'bg-lime-500' },
-  { id: 'engineering', name: 'Engineering & Infrastructure', icon: Wrench, color: 'bg-slate-600' }
+/* ─── Data — UNCHANGED values ─── */
+const interestsData: Interest[] = [
+  { id: 'tech', name: 'Technology', icon: Computer, emoji: '💻' },
+  { id: 'design', name: 'Design', icon: Palette, emoji: '🎨' },
+  { id: 'business', name: 'Business', icon: Building2, emoji: '🏢' },
+  { id: 'healthcare', name: 'Healthcare', icon: Heart, emoji: '❤️' },
+  { id: 'science', name: 'Science', icon: Beaker, emoji: '🔬' },
+  { id: 'writing', name: 'Writing', icon: PenTool, emoji: '✍️' },
+  { id: 'social', name: 'Social Work', icon: Users, emoji: '🤝' },
+  { id: 'finance', name: 'Finance', icon: Calculator, emoji: '📊' },
+  { id: 'international', name: 'International', icon: Globe, emoji: '🌍' },
+  { id: 'arts', name: 'Arts', icon: Music, emoji: '🎵' },
+  { id: 'media', name: 'Media', icon: Camera, emoji: '📷' },
+  { id: 'education', name: 'Education & Teaching', icon: GraduationCap, emoji: '🎓' },
+  { id: 'law', name: 'Law & Justice', icon: Scale, emoji: '⚖️' },
+  { id: 'research', name: 'Research & Academia', icon: FlaskConical, emoji: '🧪' },
+  { id: 'sports', name: 'Sports & Fitness', icon: Trophy, emoji: '🏆' },
+  { id: 'environment', name: 'Environment & Sustainability', icon: Leaf, emoji: '🌿' },
+  { id: 'engineering', name: 'Engineering & Infrastructure', icon: Wrench, emoji: '⚙️' },
 ];
 
+const educationOptions = [
+  { value: 'high-school', label: 'High School' },
+  { value: 'associate', label: 'Associate' },
+  { value: 'bachelor', label: "Bachelor's" },
+  { value: 'master', label: "Master's" },
+  { value: 'phd', label: 'PhD' },
+  { value: 'bootcamp', label: 'Bootcamp' },
+  { value: 'other', label: 'Other' },
+];
+
+const predefinedSkills = [
+  'JavaScript', 'Python', 'React', 'Node.js', 'SQL', 'HTML/CSS',
+  'Project Management', 'Communication', 'Leadership', 'Problem Solving',
+  'Data Analysis', 'Marketing', 'Sales', 'Design', 'Writing',
+  'Teaching', 'Research', 'Critical Thinking', 'Public Speaking',
+  'Patient Care', 'Legal Research', 'Accounting', 'Financial Analysis',
+];
+
+const predefinedSubjects = [
+  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
+  'English', 'History', 'Economics', 'Business Studies', 'Accounting',
+  'Psychology', 'Political Science', 'Geography', 'Statistics', 'Engineering',
+  'Law', 'Art & Design', 'Medicine', 'Nursing', 'Education',
+  'Physical Education', 'Music', 'Fine Arts', 'Drama & Theater',
+  'Home Science', 'Agriculture', 'Environmental Science',
+];
+
+/* ─── Shared Inline Styles ─── */
+const glassInput: React.CSSProperties = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '12px',
+  padding: '16px 20px',
+  color: 'white',
+  fontSize: '1rem',
+  outline: 'none',
+  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+  fontFamily: "'DM Sans', sans-serif",
+};
+
+const glassInputFocus: React.CSSProperties = {
+  borderColor: 'rgba(90,170,120,0.6)',
+  boxShadow: '0 0 0 3px rgba(90,170,120,0.15)',
+};
+
+/* ─── Component ─── */
 export function CareerAssessment() {
   const navigate = useNavigate();
   const { setUserData } = useUser();
+
+  /* Form state — UNCHANGED field names */
   const [formData, setFormData] = useState({
     name: '',
     education: '',
     skills: [] as string[],
     interests: [] as string[],
     subjects: [] as string[],
-    goals: ''
+    goals: '',
   });
   const [customSkill, setCustomSkill] = useState('');
   const [showCustomSkill, setShowCustomSkill] = useState(false);
@@ -83,29 +125,37 @@ export function CareerAssessment() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const predefinedSkills = [
-    'JavaScript', 'Python', 'React', 'Node.js', 'SQL', 'HTML/CSS',
-    'Project Management', 'Communication', 'Leadership', 'Problem Solving',
-    'Data Analysis', 'Marketing', 'Sales', 'Design', 'Writing',
-    'Teaching', 'Research', 'Critical Thinking', 'Public Speaking',
-    'Patient Care', 'Legal Research', 'Accounting', 'Financial Analysis'
-  ];
+  /* Wizard state */
+  const [currentStep, setCurrentStep] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const TOTAL_STEPS = 4;
+  const [showThinking, setShowThinking] = useState(false);
+  const [thinkingMsgIndex, setThinkingMsgIndex] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [progressFlash, setProgressFlash] = useState(false);
+  const [bounceNode, setBounceNode] = useState<number | null>(null);
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth > 1100 : false);
 
-  const predefinedSubjects = [
-    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
-    'English', 'History', 'Economics', 'Business Studies', 'Accounting',
-    'Psychology', 'Political Science', 'Geography', 'Statistics', 'Engineering',
-  'Law', 'Art & Design', 'Medicine', 'Nursing', 'Education',
-  'Physical Education', 'Music', 'Fine Arts', 'Drama & Theater',
-  'Home Science', 'Agriculture', 'Environmental Science'
-  ];
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth > 1100);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
+  /* Focus tracking for green glow */
+  const [nameFocused, setNameFocused] = useState(false);
+  const [goalsFocused, setGoalsFocused] = useState(false);
+  const [customSubjectFocused, setCustomSubjectFocused] = useState(false);
+  const [customSkillFocused, setCustomSkillFocused] = useState(false);
+
+  /* ─── Handlers — ALL UNCHANGED logic ─── */
   const handleSkillToggle = (skill: string) => {
     setFormData(prev => ({
       ...prev,
       skills: prev.skills.includes(skill)
         ? prev.skills.filter(s => s !== skill)
-        : [...prev.skills, skill]
+        : [...prev.skills, skill],
     }));
   };
 
@@ -114,7 +164,7 @@ export function CareerAssessment() {
       ...prev,
       subjects: prev.subjects.includes(subject)
         ? prev.subjects.filter(s => s !== subject)
-        : [...prev.subjects, subject]
+        : [...prev.subjects, subject],
     }));
   };
 
@@ -122,7 +172,7 @@ export function CareerAssessment() {
     if (customSkill.trim() && !formData.skills.includes(customSkill.trim())) {
       setFormData(prev => ({
         ...prev,
-        skills: [...prev.skills, customSkill.trim()]
+        skills: [...prev.skills, customSkill.trim()],
       }));
       setCustomSkill('');
       setShowCustomSkill(false);
@@ -133,7 +183,7 @@ export function CareerAssessment() {
     if (customSubject.trim() && !formData.subjects.includes(customSubject.trim())) {
       setFormData(prev => ({
         ...prev,
-        subjects: [...prev.subjects, customSubject.trim()]
+        subjects: [...prev.subjects, customSubject.trim()],
       }));
       setCustomSubject('');
       setShowCustomSubject(false);
@@ -145,57 +195,49 @@ export function CareerAssessment() {
       ...prev,
       interests: prev.interests.includes(interestId)
         ? prev.interests.filter(i => i !== interestId)
-        : [...prev.interests, interestId]
+        : [...prev.interests, interestId],
     }));
   };
 
+  /* ─── Submit — UNCHANGED API call ─── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation
+
     if (!formData.education.trim()) {
       setError('Please enter your education background');
       return;
     }
-    
     if (formData.skills.length === 0) {
       setError('Please select at least one skill');
       return;
     }
-    
     if (formData.interests.length === 0) {
       setError('Please select at least one interest');
       return;
     }
-
     if (formData.subjects.length === 0) {
       setError('Please select at least one subject');
       return;
     }
-
     if (!formData.goals.trim()) {
       setError('Please describe your career goals');
       return;
     }
-    
+
     setError(null);
     setIsLoading(true);
-    
+
     try {
       console.log('📤 CareerAssessment: Submitting form data:', formData);
-      
-      // Call backend API
       const response = await getCareerRecommendations(formData);
-      
+
       console.log('📥 CareerAssessment: Received API response:', response);
       console.log('📊 CareerAssessment: Recommendations array:', response.recommendations);
-      
-      // Log each recommendation
+
       response.recommendations.forEach((rec: any, idx: number) => {
         console.log(`   ${idx + 1}. ${rec.career_name} (${(rec.similarity_score * 100).toFixed(1)}%)`);
       });
-      
-      // Prepare user data with recommendations
+
       const newUserData = {
         name: formData.name,
         education: formData.education,
@@ -203,20 +245,16 @@ export function CareerAssessment() {
         interests: formData.interests,
         subjects: formData.subjects,
         goals: formData.goals,
-        recommendations: response.recommendations
+        recommendations: response.recommendations,
       };
-      
+
       console.log('💾 CareerAssessment: Setting userData to:', newUserData);
-      
-      // Save to context
       setUserData(newUserData);
-      
-      // Navigate immediately with fresh data to avoid stale context
+
       console.log('🚀 CareerAssessment: Navigating to /recommendations');
-      navigate('/recommendations', { 
-        state: { freshRecommendations: response.recommendations } 
+      navigate('/recommendations', {
+        state: { freshRecommendations: response.recommendations },
       });
-      
     } catch (err) {
       console.error('❌ CareerAssessment: Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to get recommendations. Please try again.');
@@ -225,350 +263,1043 @@ export function CareerAssessment() {
     }
   };
 
+  /* ─── Step navigation ─── */
+  const canProceed = useCallback((): boolean => {
+    switch (currentStep) {
+      case 0: return formData.name.trim().length > 0 && formData.education.length > 0;
+      case 1: return formData.subjects.length > 0;
+      case 2: return formData.skills.length > 0 && formData.interests.length > 0;
+      case 3: return formData.goals.trim().length > 0;
+      default: return false;
+    }
+  }, [currentStep, formData]);
+
+  const goNext = () => {
+    if (isAnimating || !canProceed()) return;
+    // Enhancement 5: celebration flash + node bounce
+    setProgressFlash(true);
+    setBounceNode(currentStep);
+    setTimeout(() => setProgressFlash(false), 400);
+    setTimeout(() => setBounceNode(null), 300);
+    // Mark step completed
+    setCompletedSteps(prev => prev.includes(currentStep) ? prev : [...prev, currentStep]);
+    // Enhancement 1: thinking overlay
+    setThinkingMsgIndex(currentStep % 3);
+    setShowThinking(true);
+    setSlideDirection('left');
+    setIsAnimating(true);
+    setTimeout(() => {
+      setShowThinking(false);
+      setCurrentStep(prev => Math.min(prev + 1, TOTAL_STEPS - 1));
+      setIsAnimating(false);
+    }, 700);
+  };
+
+  const goBack = () => {
+    if (isAnimating) return;
+    setSlideDirection('right');
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrentStep(prev => Math.max(prev - 1, 0));
+      setIsAnimating(false);
+    }, 400);
+  };
+
+  /* Animation styles */
+  const slideStyle: React.CSSProperties = isAnimating
+    ? {
+        transform: slideDirection === 'left' ? 'translateX(-100%)' : 'translateX(100%)',
+        opacity: 0,
+        transition: 'transform 400ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms ease',
+      }
+    : {
+        transform: 'translateX(0)',
+        opacity: 1,
+        transition: 'transform 400ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms ease',
+      };
+
+  const progressWidth = `${(completedSteps.length / TOTAL_STEPS) * 100}%`;
+
+  /* ─── Pill renderer (reused for subjects and skills) ─── */
+  const renderPill = (
+    label: string,
+    isSelected: boolean,
+    onClick: () => void,
+    isCustom: boolean = false,
+  ) => (
+    <button
+      key={label}
+      type="button"
+      onClick={(e: React.MouseEvent) => { emitParticles(e, isSelected); onClick(); }}
+      style={{
+        background: isSelected ? 'rgba(90,170,120,0.18)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${isSelected ? '#5aaa78' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: '20px',
+        padding: '8px 18px',
+        color: isSelected ? '#fff' : 'rgba(255,255,255,0.7)',
+        fontSize: '0.85rem',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+      }}
+      onMouseEnter={e => {
+        if (!isSelected) {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.2)';
+          (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isSelected) {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)';
+        }
+        (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+      }}
+    >
+      {isSelected && <span style={{ color: '#5aaa78', fontWeight: 700 }}>✓</span>}
+      {label}
+      {isCustom && isSelected && <X size={12} style={{ marginLeft: '4px', opacity: 0.6 }} />}
+    </button>
+  );
+
+  /* ─── RENDER ─── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-gradient-card/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 hover:bg-muted/60"
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#0a0a0a',
+        color: 'white',
+        fontFamily: "'DM Sans', sans-serif",
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Background glow — persists across all steps */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(80,120,90,0.3) 0%, transparent 70%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      {/* ─── Fixed Header Unit (Fix 1 + Fix 2) ─── */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          background: 'rgba(10,10,10,0.95)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <nav
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            maxWidth: '72rem',
+            margin: '0 auto',
+            padding: '20px 24px',
+          }}
+        >
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.5)',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 300,
+              fontFamily: "'DM Sans', sans-serif",
+              letterSpacing: '0.04em',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.9)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)'; }}
+          >
+            <ChevronLeft size={16} />
+            Back to Home
+          </button>
+          <span
+            style={{
+              fontSize: '1rem',
+              fontFamily: "'Syne', sans-serif",
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: 'rgba(255,255,255,0.9)',
+            }}
+          >
+            CareerAI
+          </span>
+        </nav>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '4px 0 6px',
+            fontSize: '0.75rem',
+            color: 'rgba(255,255,255,0.4)',
+            letterSpacing: '0.1em',
+            fontWeight: 400,
+          }}
+        >
+          Step {currentStep + 1} of {TOTAL_STEPS}
+        </div>
+        <ProgressNodes
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+          bounceNode={bounceNode}
+          progressFlash={progressFlash}
+          totalSteps={TOTAL_STEPS}
+        />
+      </div>
+
+      {/* ─── Wizard Content ─── */}
+      <form onSubmit={handleSubmit} style={{ position: 'relative', zIndex: 1 }}>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '140px 24px 80px',
+            maxWidth: '680px',
+            margin: '0 auto',
+            ...slideStyle,
+          }}
+        >
+          {/* Error display */}
+          {error && (
+            <div
+              style={{
+                width: '100%',
+                marginBottom: '24px',
+                padding: '14px 20px',
+                background: 'rgba(220,60,60,0.12)',
+                border: '1px solid rgba(220,60,60,0.3)',
+                borderRadius: '12px',
+                color: '#ff8888',
+                fontSize: '0.9rem',
+              }}
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back to Home</span>
-            </Button>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center shadow-smooth">
-                <BrainCircuit className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-heading">CareerAI</span>
+              {error}
             </div>
-          </div>
-        </div>
-      </header>
+          )}
 
-      {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-6 py-12">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium mb-6 shadow-sm">
-            <Sparkles className="w-4 h-4" />
-            <span>Step 1 of 1</span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">
-            Tell us about yourself
-          </h1>
-          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-            Help us understand your background and preferences to provide personalized career recommendations
-          </p>
-        </div>
+          {/* ═══════ STEP 1: Who are you? ═══════ */}
+          {currentStep === 0 && (
+            <div style={{ width: '100%' }}>
+              <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                <h1
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                    color: 'white',
+                    marginBottom: '12px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  Who are you?
+                </h1>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.05rem', fontWeight: 300 }}>
+                  Let's start with the basics.
+                </p>
+              </div>
 
-        <Card className="bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/40 dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800">
-          <CardContent className="p-8 md:p-12">
-            <form onSubmit={handleSubmit} className="space-y-12 md:space-y-14">
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
-                  <p className="font-medium">Error</p>
-                  <p className="text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* Name Field */}
-              <div className="space-y-4">
-                <Label htmlFor="name" className="text-base font-semibold text-slate-900 dark:text-white">
-                  What's your name?
-                </Label>
-                <Input
+              {/* Name input */}
+              <div style={{ marginBottom: '40px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '10px',
+                    fontSize: '0.8rem',
+                    color: 'rgba(255,255,255,0.35)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    fontWeight: 400,
+                  }}
+                >
+                  Your Name
+                </label>
+                <input
                   id="name"
+                  name="name"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter your full name"
-                  className="h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-background focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all text-base"
                   required
+                  onFocus={() => setNameFocused(true)}
+                  onBlur={() => setNameFocused(false)}
+                  style={{
+                    ...glassInput,
+                    ...(nameFocused ? glassInputFocus : {}),
+                  }}
                 />
               </div>
 
-              {/* Education Level */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold text-slate-900 dark:text-white">
-                  What's your education level?
-                </Label>
-                <Select 
-                  value={formData.education} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, education: value }))}
+              {/* Education level — styled option cards */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '14px',
+                    fontSize: '0.8rem',
+                    color: 'rgba(255,255,255,0.35)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    fontWeight: 400,
+                  }}
                 >
-                  <SelectTrigger className="h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base">
-                    <SelectValue placeholder="Select your education level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high-school">High School</SelectItem>
-                    <SelectItem value="associate">Associate Degree</SelectItem>
-                    <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
-                    <SelectItem value="master">Master's Degree</SelectItem>
-                    <SelectItem value="phd">PhD/Doctorate</SelectItem>
-                    <SelectItem value="bootcamp">Bootcamp/Certificate</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Subjects */}
-              <div className="space-y-5">
-                <Label className="text-base font-semibold text-slate-900 dark:text-white">
-                  What subjects have you studied?
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Select all relevant subjects from your education
-                </p>
-                
-                <div className="flex flex-wrap gap-3">
-                  {predefinedSubjects.map((subject) => (
-                    <Button
-                      key={subject}
-                      type="button"
-                      variant={formData.subjects.includes(subject) ? "default" : "outline"}
-                      onClick={() => handleSubjectToggle(subject)}
-                      className={`${formData.subjects.includes(subject) 
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm hover:opacity-90' 
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm'
-                      } transition-all duration-300 ease-out`}
-                    >
-                      {subject}
-                    </Button>
-                  ))}
-                  
-                  {formData.subjects
-                    .filter(subject => !predefinedSubjects.includes(subject))
-                    .map((subject) => (
-                    <Button
-                      key={subject}
-                      type="button"
-                      variant="default"
-                      onClick={() => handleSubjectToggle(subject)}
-                      className="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm group hover:opacity-90 transition-all duration-300 ease-out"
-                    >
-                      {subject}
-                      <X className="w-3 h-3 ml-2 opacity-60 group-hover:opacity-100" />
-                    </Button>
-                  ))}
-                  
-                  {!showCustomSubject ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowCustomSubject(true)}
-                      className="border-dashed hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 transition-all duration-300 ease-out"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Custom Subject
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={customSubject}
-                        onChange={(e) => setCustomSubject(e.target.value)}
-                        placeholder="Enter subject"
-                        className="w-40 h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-background focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddCustomSubject()}
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleAddCustomSubject}
-                        disabled={!customSubject.trim()}
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowCustomSubject(false);
-                          setCustomSubject('');
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Skills */}
-              <div className="space-y-5">
-                <Label className="text-base font-semibold text-slate-900 dark:text-white">
-                  What are your key skills?
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Select all that apply or add your own
-                </p>
-                
-                <div className="flex flex-wrap gap-3">
-                  {predefinedSkills.map((skill) => (
-                    <Button
-                      key={skill}
-                      type="button"
-                      variant={formData.skills.includes(skill) ? "default" : "outline"}
-                      onClick={() => handleSkillToggle(skill)}
-                      className={`${formData.skills.includes(skill) 
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm hover:opacity-90' 
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:shadow-sm'
-                      } transition-all duration-300 ease-out`}
-                    >
-                      {skill}
-                    </Button>
-                  ))}
-                  
-                  {formData.skills
-                    .filter(skill => !predefinedSkills.includes(skill))
-                    .map((skill) => (
-                    <Button
-                      key={skill}
-                      type="button"
-                      variant="default"
-                      onClick={() => handleSkillToggle(skill)}
-                      className="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm group hover:opacity-90 transition-all duration-300 ease-out"
-                    >
-                      {skill}
-                      <X className="w-3 h-3 ml-2 opacity-60 group-hover:opacity-100" />
-                    </Button>
-                  ))}
-                  
-                  {!showCustomSkill ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowCustomSkill(true)}
-                      className="border-dashed hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 transition-all duration-300 ease-out"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Custom Skill
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={customSkill}
-                        onChange={(e) => setCustomSkill(e.target.value)}
-                        placeholder="Enter skill"
-                        className="w-40 h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-background focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddCustomSkill()}
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleAddCustomSkill}
-                        disabled={!customSkill.trim()}
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowCustomSkill(false);
-                          setCustomSkill('');
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Interests */}
-              <div className="space-y-5">
-                <Label className="text-base font-semibold text-slate-900 dark:text-white">
-                  What are your interests?
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Choose areas that excite you and align with your passions
-                </p>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {interests.map((interest) => {
-                    const isSelected = formData.interests.includes(interest.id);
-                    const IconComponent = interest.icon;
-                    
+                  Education Level
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                  }}
+                >
+                  {educationOptions.map(opt => {
+                    const selected = formData.education === opt.value;
                     return (
-                      <Card
-                        key={interest.id}
-                        className={`cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md ${
-                          isSelected 
-                            ? 'ring-2 ring-slate-900 dark:ring-slate-100 bg-slate-50 dark:bg-slate-800/50 shadow-sm' 
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800'
-                        }`}
-                        onClick={() => handleInterestToggle(interest.id)}
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, education: opt.value }))}
+                        style={{
+                          background: selected ? 'rgba(90,170,120,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${selected ? '#5aaa78' : 'rgba(255,255,255,0.08)'}`,
+                          borderRadius: '12px',
+                          padding: '14px 24px',
+                          cursor: 'pointer',
+                          color: selected ? '#5aaa78' : 'rgba(255,255,255,0.7)',
+                          fontSize: '0.9rem',
+                          fontWeight: selected ? 600 : 400,
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={e => {
+                          if (!selected) {
+                            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.2)';
+                            (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (!selected) {
+                            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)';
+                          }
+                          (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                        }}
                       >
-                        <CardContent className="p-6 text-center space-y-3">
-                          <div className={`w-12 h-12 rounded-xl ${interest.color} flex items-center justify-center shadow-sm mx-auto ${
-                            isSelected ? 'scale-110' : 'group-hover:scale-110'
-                          } transition-transform duration-300 ease-out`}>
-                            <IconComponent className="w-6 h-6 text-white" />
-                          </div>
-                          <div className={`font-medium ${
-                            isSelected ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-600 dark:text-slate-400'
-                          } transition-colors duration-300`}>
-                            {interest.name}
-                          </div>
-                        </CardContent>
-                      </Card>
+                        {selected && <span style={{ marginRight: '6px' }}>✓</span>}
+                        {opt.label}
+                      </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Career Goals */}
-              <div className="space-y-5">
-                <Label htmlFor="goals" className="text-base font-semibold text-slate-900 dark:text-white">
-                  What are your career goals?
-                </Label>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Tell us about your aspirations, dream job, or what you want to achieve in your career
+              {/* Next button */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '48px' }}>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={!canProceed()}
+                  style={{
+                    background: canProceed() ? 'white' : 'rgba(255,255,255,0.15)',
+                    color: canProceed() ? '#0a0a0a' : 'rgba(255,255,255,0.3)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '14px 32px',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: canProceed() ? 'pointer' : 'not-allowed',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.25s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: canProceed() ? 1 : 0.5,
+                  }}
+                  onMouseEnter={e => {
+                    if (canProceed()) {
+                      (e.currentTarget as HTMLElement).style.background = '#e8ffe0';
+                      (e.currentTarget as HTMLElement).style.boxShadow = '0 0 25px rgba(90,170,120,0.5)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (canProceed()) {
+                      (e.currentTarget as HTMLElement).style.background = 'white';
+                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  Next
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════ STEP 2: What have you studied? ═══════ */}
+          {currentStep === 1 && (
+            <div style={{ width: '100%' }}>
+              <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                <h1
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                    color: 'white',
+                    marginBottom: '12px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  What have you studied?
+                </h1>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.05rem', fontWeight: 300 }}>
+                  Select every subject you've covered.
                 </p>
-                
-                <textarea
-                  id="goals"
-                  value={formData.goals || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, goals: e.target.value }))}
-                  placeholder="Example: I want to become a data scientist and work on AI projects that solve real-world problems..."
-                  className="w-full min-h-[120px] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  required
-                />
               </div>
 
-              {/* Submit Button */}
-              <div className="pt-10 pb-4 text-center">
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 rounded-xl px-10 py-4 h-auto text-base font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 ease-out"
-                  disabled={isLoading || !formData.name || !formData.education || formData.skills.length === 0 || formData.interests.length === 0 || formData.subjects.length === 0 || !formData.goals.trim()}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="animate-spin mr-2">⏳</span>
-                      <span>Getting Your Career Recommendations...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Get My Career Recommendations</span>
-                      <Sparkles className="w-5 h-5 ml-2" />
-                    </>
+              {/* Subject pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+                {predefinedSubjects.map(subject =>
+                  renderPill(subject, formData.subjects.includes(subject), () => handleSubjectToggle(subject))
+                )}
+
+                {/* Custom subjects */}
+                {formData.subjects
+                  .filter(s => !predefinedSubjects.includes(s))
+                  .map(subject =>
+                    renderPill(subject, true, () => handleSubjectToggle(subject), true)
                   )}
-                </Button>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
-                  Your assessment will be processed instantly using AI
+
+                {/* Add custom subject */}
+                {!showCustomSubject ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomSubject(true)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px dashed rgba(255,255,255,0.2)',
+                      borderRadius: '20px',
+                      padding: '8px 18px',
+                      color: 'rgba(255,255,255,0.5)',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      fontFamily: "'DM Sans', sans-serif",
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.4)';
+                      (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.2)';
+                      (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)';
+                    }}
+                  >
+                    <Plus size={14} />
+                    Add Custom Subject
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      value={customSubject}
+                      onChange={e => setCustomSubject(e.target.value)}
+                      placeholder="Enter subject"
+                      onKeyPress={e => e.key === 'Enter' && handleAddCustomSubject()}
+                      onFocus={() => setCustomSubjectFocused(true)}
+                      onBlur={() => setCustomSubjectFocused(false)}
+                      style={{
+                        ...glassInput,
+                        width: '180px',
+                        padding: '10px 16px',
+                        fontSize: '0.85rem',
+                        ...(customSubjectFocused ? glassInputFocus : {}),
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomSubject}
+                      disabled={!customSubject.trim()}
+                      style={{
+                        background: customSubject.trim() ? '#5aaa78' : 'rgba(255,255,255,0.1)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '10px 16px',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        cursor: customSubject.trim() ? 'pointer' : 'not-allowed',
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCustomSubject(false); setCustomSubject(''); }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'rgba(255,255,255,0.5)',
+                        cursor: 'pointer',
+                        padding: '8px',
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Smart encouragement (Enhancement 4) */}
+              <p style={{ fontSize: '0.8rem', marginTop: '12px', fontWeight: 500, color: getSubjectEncouragement(formData.subjects.length).color, transition: 'all 0.2s ease', animation: 'ca-msgFade 200ms ease' }} key={`subj-enc-${Math.min(formData.subjects.length, 10)}`}>
+                {getSubjectEncouragement(formData.subjects.length).text}
+              </p>
+
+              {/* Navigation */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '48px' }}>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  style={{
+                    background: 'none',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '14px 28px',
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.3)';
+                    (e.currentTarget as HTMLElement).style.color = 'white';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.15)';
+                    (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={!canProceed()}
+                  style={{
+                    background: canProceed() ? 'white' : 'rgba(255,255,255,0.15)',
+                    color: canProceed() ? '#0a0a0a' : 'rgba(255,255,255,0.3)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '14px 32px',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: canProceed() ? 'pointer' : 'not-allowed',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.25s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: canProceed() ? 1 : 0.5,
+                  }}
+                  onMouseEnter={e => {
+                    if (canProceed()) {
+                      (e.currentTarget as HTMLElement).style.background = '#e8ffe0';
+                      (e.currentTarget as HTMLElement).style.boxShadow = '0 0 25px rgba(90,170,120,0.5)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (canProceed()) {
+                      (e.currentTarget as HTMLElement).style.background = 'white';
+                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  Next
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════ STEP 3: Your skills & interests ═══════ */}
+          {currentStep === 2 && (
+            <div style={{ width: '100%' }}>
+              <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h1
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                    color: 'white',
+                    marginBottom: '12px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  What drives you?
+                </h1>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.05rem', fontWeight: 300 }}>
+                  Pick your skills and the areas that excite you.
                 </p>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
+
+              {/* Skills sub-section */}
+              <div style={{ marginBottom: '36px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '14px',
+                    fontSize: '0.8rem',
+                    color: 'rgba(255,255,255,0.35)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    fontWeight: 400,
+                  }}
+                >
+                  Skills
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {predefinedSkills.map(skill =>
+                    renderPill(skill, formData.skills.includes(skill), () => handleSkillToggle(skill))
+                  )}
+
+                  {formData.skills
+                    .filter(s => !predefinedSkills.includes(s))
+                    .map(skill =>
+                      renderPill(skill, true, () => handleSkillToggle(skill), true)
+                    )}
+
+                  {/* Add custom skill */}
+                  {!showCustomSkill ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomSkill(true)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px dashed rgba(255,255,255,0.2)',
+                        borderRadius: '20px',
+                        padding: '8px 18px',
+                        color: 'rgba(255,255,255,0.5)',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        fontFamily: "'DM Sans', sans-serif",
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.4)';
+                        (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.2)';
+                        (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)';
+                      }}
+                    >
+                      <Plus size={14} />
+                      Add Custom Skill
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        value={customSkill}
+                        onChange={e => setCustomSkill(e.target.value)}
+                        placeholder="Enter skill"
+                        onKeyPress={e => e.key === 'Enter' && handleAddCustomSkill()}
+                        onFocus={() => setCustomSkillFocused(true)}
+                        onBlur={() => setCustomSkillFocused(false)}
+                        style={{
+                          ...glassInput,
+                          width: '180px',
+                          padding: '10px 16px',
+                          fontSize: '0.85rem',
+                          ...(customSkillFocused ? glassInputFocus : {}),
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomSkill}
+                        disabled={!customSkill.trim()}
+                        style={{
+                          background: customSkill.trim() ? '#5aaa78' : 'rgba(255,255,255,0.1)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '10px 16px',
+                          color: 'white',
+                          fontSize: '0.85rem',
+                          cursor: customSkill.trim() ? 'pointer' : 'not-allowed',
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCustomSkill(false); setCustomSkill(''); }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'rgba(255,255,255,0.5)',
+                          cursor: 'pointer',
+                          padding: '8px',
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {/* Smart encouragement (Enhancement 4) */}
+                <p style={{ fontSize: '0.8rem', marginTop: '10px', fontWeight: 500, color: getSkillEncouragement(formData.skills.length).color, transition: 'all 0.2s ease', animation: 'ca-msgFade 200ms ease' }} key={`skill-enc-${Math.min(formData.skills.length, 10)}`}>
+                  {getSkillEncouragement(formData.skills.length).text}
+                </p>
+              </div>
+
+              {/* Divider */}
+              <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.08)', marginBottom: '36px' }} />
+
+              {/* Interests sub-section */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '14px',
+                    fontSize: '0.8rem',
+                    color: 'rgba(255,255,255,0.35)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    fontWeight: 400,
+                  }}
+                >
+                  Interests
+                </label>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))',
+                    gap: '12px',
+                  }}
+                >
+                  {interestsData.map(interest => {
+                    const isSelected = formData.interests.includes(interest.id);
+                    return (
+                      <button
+                        key={interest.id}
+                        type="button"
+                        onClick={(e: React.MouseEvent) => { emitParticles(e, isSelected); handleInterestToggle(interest.id); }}
+                        style={{
+                          background: isSelected ? 'rgba(90,170,120,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${isSelected ? '#5aaa78' : 'rgba(255,255,255,0.08)'}`,
+                          borderRadius: '16px',
+                          padding: '20px 12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '10px',
+                          transition: 'all 0.25s ease',
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                        onMouseEnter={e => {
+                          const el = e.currentTarget as HTMLElement;
+                          if (!isSelected) el.style.borderColor = 'rgba(255,255,255,0.2)';
+                          el.style.transform = 'translateY(-4px) scale(1.03)';
+                          el.style.boxShadow = '0 8px 30px rgba(0,0,0,0.4)';
+                        }}
+                        onMouseLeave={e => {
+                          const el = e.currentTarget as HTMLElement;
+                          if (!isSelected) el.style.borderColor = 'rgba(255,255,255,0.08)';
+                          el.style.transform = 'translateY(0) scale(1)';
+                          el.style.boxShadow = 'none';
+                        }}
+                      >
+                        <span style={{ fontSize: '1.8rem' }}>{interest.emoji}</span>
+                        <span
+                          style={{
+                            fontSize: '0.78rem',
+                            fontWeight: isSelected ? 600 : 400,
+                            color: isSelected ? '#5aaa78' : 'rgba(255,255,255,0.7)',
+                            textAlign: 'center',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {interest.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Smart encouragement (Enhancement 4) */}
+                <p style={{ fontSize: '0.8rem', marginTop: '12px', fontWeight: 500, color: getInterestEncouragement(formData.interests.length).color, transition: 'all 0.2s ease', animation: 'ca-msgFade 200ms ease' }} key={`int-enc-${Math.min(formData.interests.length, 5)}`}>
+                  {getInterestEncouragement(formData.interests.length).text}
+                </p>
+              </div>
+
+              {/* Navigation */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '48px' }}>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  style={{
+                    background: 'none',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '14px 28px',
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.3)';
+                    (e.currentTarget as HTMLElement).style.color = 'white';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.15)';
+                    (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={!canProceed()}
+                  style={{
+                    background: canProceed() ? 'white' : 'rgba(255,255,255,0.15)',
+                    color: canProceed() ? '#0a0a0a' : 'rgba(255,255,255,0.3)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '14px 32px',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: canProceed() ? 'pointer' : 'not-allowed',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.25s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: canProceed() ? 1 : 0.5,
+                  }}
+                  onMouseEnter={e => {
+                    if (canProceed()) {
+                      (e.currentTarget as HTMLElement).style.background = '#e8ffe0';
+                      (e.currentTarget as HTMLElement).style.boxShadow = '0 0 25px rgba(90,170,120,0.5)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (canProceed()) {
+                      (e.currentTarget as HTMLElement).style.background = 'white';
+                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  Next
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════ STEP 4: Your ambition ═══════ */}
+          {currentStep === 3 && (
+            <div style={{ width: '100%' }}>
+              <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                <h1
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                    color: 'white',
+                    marginBottom: '12px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  What's your goal?
+                </h1>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.05rem', fontWeight: 300 }}>
+                  Tell us where you want to go. Be as specific as you like.
+                </p>
+              </div>
+
+              {/* Goals textarea */}
+              <div style={{ position: 'relative', marginBottom: '40px' }}>
+                <textarea
+                  id="goals"
+                  name="goals"
+                  value={formData.goals}
+                  onChange={e => setFormData(prev => ({ ...prev, goals: e.target.value }))}
+                  placeholder="Example: I want to become a data scientist and work on AI projects that solve real-world problems..."
+                  required
+                  onFocus={() => setGoalsFocused(true)}
+                  onBlur={() => setGoalsFocused(false)}
+                  style={{
+                    ...glassInput,
+                    minHeight: '160px',
+                    resize: 'vertical' as const,
+                    lineHeight: 1.6,
+                    ...(goalsFocused ? glassInputFocus : {}),
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    right: '16px',
+                    fontSize: '0.75rem',
+                    color: 'rgba(255,255,255,0.3)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {formData.goals.length} characters
+                </span>
+              </div>
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={isLoading || !canProceed()}
+                style={{
+                  width: '100%',
+                  background: (isLoading || !canProceed())
+                    ? 'rgba(255,255,255,0.1)'
+                    : 'linear-gradient(135deg, #4a9060, #6db88a)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '18px',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  fontFamily: "'Syne', sans-serif",
+                  cursor: (isLoading || !canProceed()) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  opacity: (isLoading || !canProceed()) ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                }}
+                onMouseEnter={e => {
+                  if (!isLoading && canProceed()) {
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 0 50px rgba(90,170,120,0.6)';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                }}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                    Analyzing Your Career Path...
+                  </>
+                ) : (
+                  <>
+                    Analyze My Career Path
+                    <ArrowRight size={20} />
+                  </>
+                )}
+              </button>
+              <p
+                style={{
+                  textAlign: 'center',
+                  marginTop: '16px',
+                  fontSize: '0.8rem',
+                  color: 'rgba(255,255,255,0.35)',
+                  fontWeight: 300,
+                }}
+              >
+                Your assessment will be processed instantly using AI
+              </p>
+
+              {/* Back button */}
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '32px' }}>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  style={{
+                    background: 'none',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '14px 28px',
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.3)';
+                    (e.currentTarget as HTMLElement).style.color = 'white';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.15)';
+                    (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </form>
+
+      {/* Enhancement 1: Thinking Overlay */}
+      <ThinkingOverlay visible={showThinking} msgIdx={thinkingMsgIndex} />
+
+      {/* Enhancement 2: Live Profile Card (desktop only) */}
+      {isDesktop && <LiveProfileCard formData={formData} />}
+
+      {/* Keyframes */}
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        input::placeholder, textarea::placeholder {
+          color: rgba(255,255,255,0.25) !important;
+        }
+        ${ASSESSMENT_KEYFRAMES}
+      `}</style>
     </div>
   );
 }
