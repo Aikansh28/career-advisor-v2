@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,223 +109,263 @@ export const CareerRoadmap: React.FC<CareerRoadmapProps> = ({
 
   const learningResources = parseResources();
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getLevelStyle = (difficulty: string) => {
     switch (difficulty) {
-      case "Beginner": return "bg-green-500/20 text-green-700 dark:text-green-300";
-      case "Intermediate": return "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300";
-      case "Advanced": return "bg-red-500/20 text-red-700 dark:text-red-300";
-      default: return "bg-gray-500/20 text-gray-700 dark:text-gray-300";
+      case 'Beginner': return { bg: 'rgba(90,170,120,0.15)', border: '1px solid rgba(90,170,120,0.3)', color: '#6db88a', barColor: '#6db88a' };
+      case 'Intermediate': return { bg: 'rgba(240,160,50,0.12)', border: '1px solid rgba(240,160,50,0.3)', color: '#f0a050', barColor: '#f0a050' };
+      case 'Advanced': return { bg: 'rgba(220,80,80,0.12)', border: '1px solid rgba(220,80,80,0.3)', color: '#e06060', barColor: '#e06060' };
+      default: return { bg: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', barColor: 'rgba(255,255,255,0.3)' };
     }
   };
 
+  // Skill bar observer
+  const skillsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = skillsRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const bars = entry.target.querySelectorAll('[data-skill-bar]') as NodeListOf<HTMLElement>;
+          bars.forEach(bar => { bar.style.width = bar.dataset.targetWidth || '0%'; });
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [skills]);
+
+  // Section entrance observer
+  const contentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+    const sections = container.querySelectorAll('[data-animate-section]') as NodeListOf<HTMLElement>;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target as HTMLElement;
+          const delay = parseInt(el.dataset.animateDelay || '0', 10);
+          setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+          }, delay);
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.08 });
+    sections.forEach(s => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: 'rgba(255,255,255,0.82)', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
+      {/* Atmospheric green glow */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse 60% 35% at 50% 0%, rgba(80,120,90,0.22) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0 }} />
+
+      {/* Navbar */}
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, background: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
             onClick={() => navigate('/recommendations')}
-            className="mb-4 p-2"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px', fontWeight: 300, fontFamily: "'DM Sans', sans-serif", letterSpacing: '0.04em', transition: 'color 0.2s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.9)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)'; }}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft size={16} />
             Back to Recommendations
-          </Button>
-          
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              {selectedCareer}
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Your complete career roadmap and learning path
-            </p>
-          </div>
+          </button>
+          <span style={{ fontSize: '1rem', fontFamily: "'Syne', sans-serif", fontWeight: 700, letterSpacing: '-0.02em', color: 'rgba(255,255,255,0.9)' }}>CareerAI</span>
+        </div>
+      </nav>
+
+      <div ref={contentRef} style={{ maxWidth: '56rem', margin: '0 auto', padding: '88px 24px 48px', position: 'relative', zIndex: 1 }}>
+        {/* Page Heading */}
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 'clamp(2rem, 4vw, 3rem)', color: 'white', marginBottom: 8, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            {selectedCareer}
+          </h1>
+          <p style={{ fontSize: '1.05rem', fontWeight: 300, color: 'rgba(255,255,255,0.5)' }}>
+            Your complete career roadmap and learning path
+          </p>
         </div>
 
         {/* Key Skills Required */}
-        <section className="mb-10">
-          <div className="flex items-center mb-6">
-            <Target className="w-6 h-6 text-primary mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Key Skills Required
-            </h2>
+        <section data-animate-section data-animate-delay="0" style={{ marginBottom: 40, opacity: 0, transform: 'translateY(24px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <Target style={{ width: 22, height: 22, color: '#6db88a' }} />
+            <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: 'white', margin: 0 }}>Key Skills Required</h2>
           </div>
-          
-          <div className="grid gap-4">
-            {skills.map((skill, index) => (
-              <Card key={index} className="transition-all duration-200 hover:shadow-md">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center">
-                      <skill.icon className="w-5 h-5 text-primary mr-3" />
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {skill.name}
-                      </span>
+
+          <div ref={skillsRef} style={{ display: 'grid', gap: 12 }}>
+            {skills.map((skill, index) => {
+              const ls = getLevelStyle(skill.difficulty);
+              return (
+                <div
+                  key={index}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '16px 20px', transition: 'border-color 0.2s ease, transform 0.2s ease', cursor: 'default' }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.transform = 'translateX(6px)'; }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.08)'; el.style.transform = 'translateX(0)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <skill.icon style={{ width: 18, height: 18, color: '#6db88a' }} />
+                      <span style={{ fontWeight: 500, color: 'white', fontSize: '0.95rem' }}>{skill.name}</span>
                     </div>
-                    <Badge className={getDifficultyColor(skill.difficulty)}>
-                      {skill.difficulty}
-                    </Badge>
+                    <span style={{ background: ls.bg, border: ls.border, color: ls.color, borderRadius: 20, padding: '3px 12px', fontSize: '0.72rem', fontWeight: 500 }}>{skill.difficulty}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Progress value={skill.level} className="flex-1" />
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300 min-w-[3rem]">
-                      {skill.level}%
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
+                      <div data-skill-bar data-target-width={`${skill.level}%`} style={{ height: 6, borderRadius: 3, background: ls.barColor, width: '0%', transition: 'width 900ms ease-out' }} />
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', minWidth: '2.5rem', textAlign: 'right' }}>{skill.level}%</span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </section>
 
-        <Separator className="my-10" />
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '40px 0' }} />
 
         {/* Personalized Roadmap */}
         {careerData?.roadmap && (
-          <section className="mb-10">
-            <div className="flex items-center mb-6">
-              <span className="w-6 h-6 text-primary mr-3 flex items-center justify-center font-bold text-xl">🗺️</span>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                Your Personalized Roadmap
-              </h2>
+          <section data-animate-section data-animate-delay="80" style={{ marginBottom: 40, opacity: 0, transform: 'translateY(24px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ fontSize: '1.2rem' }}>🗺️</span>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: 'white', margin: 0 }}>Your Personalized Roadmap</h2>
             </div>
-            
-            <div className="space-y-4">
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {Array.isArray(careerData.roadmap) ? (
                 careerData.roadmap.map((step: string, index: number) => (
-                  <Card key={index} className="transition-all duration-200 hover:shadow-md">
-                    <CardContent className="p-6 flex items-start">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold mr-4">
-                        {index + 1}
-                      </div>
-                      <p className="text-gray-800 dark:text-gray-200 leading-relaxed pt-1">
-                        {step}
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <div key={index} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderLeft: '3px solid rgba(90,170,120,0.4)', borderRadius: 14, backdropFilter: 'blur(8px)', padding: '20px 24px', display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                    <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: '50%', background: 'rgba(90,170,120,0.15)', color: '#6db88a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', fontFamily: "'Syne', sans-serif" }}>
+                      {index + 1}
+                    </div>
+                    <p style={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.8, fontSize: '1rem', fontWeight: 300, paddingTop: 4, margin: 0 }}>
+                      {step}
+                    </p>
+                  </div>
                 ))
               ) : (
-                <Card className="transition-all duration-200">
-                  <CardContent className="p-6">
-                    <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
-                      {careerData.roadmap}
-                    </p>
-                  </CardContent>
-                </Card>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderLeft: '3px solid rgba(90,170,120,0.4)', borderRadius: 14, backdropFilter: 'blur(8px)', padding: '24px' }}>
+                  <p style={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.8, fontSize: '1rem', fontWeight: 300, margin: 0 }}>
+                    {careerData.roadmap}
+                  </p>
+                </div>
               )}
             </div>
           </section>
         )}
 
-        <Separator className="my-10" />
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '40px 0' }} />
 
         {/* Learning Resources */}
-        <section className="mb-10">
-          <div className="flex items-center mb-6">
-            <BookOpen className="w-6 h-6 text-primary mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Learning Resources
-            </h2>
+        <section data-animate-section data-animate-delay="160" style={{ marginBottom: 40, opacity: 0, transform: 'translateY(24px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <BookOpen style={{ width: 22, height: 22, color: '#6db88a' }} />
+            <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: 'white', margin: 0 }}>Learning Resources</h2>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
             {learningResources.map((resource, index) => (
-              <Card key={index} className="transition-all duration-200 hover:shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-lg">{resource.title}</CardTitle>
-                  <CardDescription>{resource.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      {resource.provider}
-                    </span>
-                    <Badge variant="secondary">
-                      {resource.duration}
-                    </Badge>
-                  </div>
-                  <Button className="w-full" variant="outline">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Explore
-                  </Button>
-                </CardContent>
-              </Card>
+              <div key={index} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, backdropFilter: 'blur(8px)', padding: 24, display: 'flex', flexDirection: 'column', transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease' }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-5px)'; el.style.borderColor = 'rgba(90,170,120,0.25)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.4)'; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(0)'; el.style.borderColor = 'rgba(255,255,255,0.08)'; el.style.boxShadow = 'none'; }}
+              >
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'white', marginBottom: 6 }}>{resource.title}</h3>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: 16, flex: 1 }}>{resource.description}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>{resource.provider}</span>
+                  <span style={{ background: 'rgba(90,170,120,0.12)', border: '1px solid rgba(90,170,120,0.25)', color: '#6db88a', borderRadius: 20, padding: '2px 10px', fontSize: '0.72rem', fontWeight: 500 }}>{resource.duration}</span>
+                </div>
+                <button
+                  style={{ width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: 8, padding: 10, fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  onMouseEnter={e => { const el = e.currentTarget; el.style.borderColor = '#5aaa78'; el.style.color = '#6db88a'; el.style.background = 'rgba(90,170,120,0.08)'; }}
+                  onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'rgba(255,255,255,0.15)'; el.style.color = 'white'; el.style.background = 'transparent'; }}
+                >
+                  <ExternalLink size={14} />
+                  Explore
+                </button>
+              </div>
             ))}
           </div>
         </section>
 
-        <Separator className="my-10" />
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '40px 0' }} />
 
         {/* Career Insights */}
-        <section className="mb-10">
-          <div className="flex items-center mb-6">
-            <Target className="w-6 h-6 text-primary mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Career Insights
-            </h2>
+        <section data-animate-section data-animate-delay="240" style={{ marginBottom: 40, opacity: 0, transform: 'translateY(24px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <Target style={{ width: 22, height: 22, color: '#6db88a' }} />
+            <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: 'white', margin: 0 }}>Career Insights</h2>
           </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Why This Suits You</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-md">
-                  {careerData?.why_suited || "Well aligned with your skills and education."}
-                </p>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Education Gap</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-md">
-                  {careerData?.education_gap || "None."}
-                </p>
-              </CardContent>
-            </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+            {/* Why This Suits You */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderTop: '2px solid rgba(90,170,120,0.3)', borderRadius: 14, backdropFilter: 'blur(8px)', padding: 24, transition: 'transform 0.25s ease, border-color 0.25s ease' }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(0)'; el.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            >
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1rem', color: 'white', marginBottom: 12 }}>Why This Suits You</h3>
+              <p style={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, fontSize: '0.95rem', margin: 0 }}>
+                {careerData?.why_suited || "Well aligned with your skills and education."}
+              </p>
+            </div>
+
+            {/* Education Gap */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderLeft: '3px solid rgba(240,160,50,0.4)', borderRadius: 14, backdropFilter: 'blur(8px)', padding: 24, transition: 'transform 0.25s ease, border-color 0.25s ease' }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(0)'; el.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            >
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1rem', color: '#f0a050', marginBottom: 12 }}>Education Gap</h3>
+              <p style={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, fontSize: '0.95rem', margin: 0 }}>
+                {careerData?.education_gap || "None."}
+              </p>
+            </div>
           </div>
         </section>
 
-        <Separator className="my-10" />
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '40px 0' }} />
 
         {/* Future Scope */}
-        <section className="mb-10">
-          <div className="flex items-center mb-6">
-            <Sparkles className="w-6 h-6 text-primary mr-3" />
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Future Scope
-            </h2>
+        <section data-animate-section data-animate-delay="320" style={{ marginBottom: 40, opacity: 0, transform: 'translateY(24px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <Sparkles style={{ width: 22, height: 22, color: '#6db88a' }} />
+            <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', color: 'white', margin: 0 }}>Future Scope</h2>
           </div>
-          
-          <Card>
-            <CardContent className="p-8">
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
-                {careerData?.future_scope || "Future scope information is currently unavailable for this career path."}
-              </p>
-            </CardContent>
-          </Card>
+
+          <div style={{ background: 'linear-gradient(135deg, rgba(90,170,120,0.06) 0%, rgba(255,255,255,0.02) 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, backdropFilter: 'blur(8px)', padding: 32, boxShadow: '0 0 40px rgba(90,170,120,0.08)' }}>
+            <p style={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.8, fontSize: '1.05rem', fontWeight: 300, margin: 0 }}>
+              {careerData?.future_scope || "Future scope information is currently unavailable for this career path."}
+            </p>
+          </div>
         </section>
 
         {/* Action Buttons */}
-        <div className="text-center">
-          <Button 
-            size="lg" 
+        <div style={{ textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16, paddingTop: 8, paddingBottom: 32 }}>
+          <button
             onClick={() => navigate('/assessment')}
-            className="mr-4"
+            style={{ background: 'linear-gradient(135deg, #4a9060, #6db88a)', color: 'white', border: 'none', borderRadius: 10, padding: '14px 28px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.25s ease' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 30px rgba(90,170,120,0.5)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}
           >
             Take Another Assessment
-          </Button>
-          <Button 
-            variant="outline" 
-            size="lg"
+          </button>
+          <button
             onClick={() => navigate('/user-dashboard')}
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: 10, padding: '14px 28px', fontSize: '1rem', fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.25s ease' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.5)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.2)'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           >
             Go to Dashboard
-          </Button>
+          </button>
         </div>
       </div>
     </div>

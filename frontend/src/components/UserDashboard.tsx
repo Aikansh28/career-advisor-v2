@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -165,252 +165,287 @@ export function UserDashboard({ onLogout }: UserDashboardProps) {
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
-  const getMatchScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 bg-green-50';
-    if (score >= 80) return 'text-blue-600 bg-blue-50';
-    if (score >= 70) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+  const getMatchColor = (score: number) => {
+    if (score >= 90) return '#6db88a';
+    if (score >= 80) return '#a8d8b0';
+    if (score >= 70) return '#f0c070';
+    return '#f0a050';
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeBadgeStyle = (type: string) => {
     switch (type) {
-      case 'Full-time': return 'bg-green-100 text-green-800';
-      case 'Part-time': return 'bg-blue-100 text-blue-800';
-      case 'Contract': return 'bg-purple-100 text-purple-800';
-      case 'Internship': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Full-time': return { bg: 'rgba(90,170,120,0.12)', border: '1px solid rgba(90,170,120,0.25)', color: '#6db88a' };
+      case 'Part-time': return { bg: 'rgba(100,150,220,0.1)', border: '1px solid rgba(100,150,220,0.25)', color: '#7ab0e0' };
+      case 'Contract': return { bg: 'rgba(90,170,120,0.1)', border: '1px solid rgba(90,170,120,0.2)', color: '#5aaa78' };
+      case 'Internship': return { bg: 'rgba(240,160,50,0.1)', border: '1px solid rgba(240,160,50,0.25)', color: '#f0a050' };
+      default: return { bg: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' };
     }
   };
 
+  // Skills bar + percentage count-up observer
+  const skillsGridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = skillsGridRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Animate bars
+          const bars = entry.target.querySelectorAll('[data-dash-bar]') as NodeListOf<HTMLElement>;
+          bars.forEach(bar => { bar.style.width = bar.dataset.targetWidth || '0%'; });
+          // Animate percentage numbers
+          const nums = entry.target.querySelectorAll('[data-count-target]') as NodeListOf<HTMLElement>;
+          nums.forEach(num => {
+            const target = parseInt(num.dataset.countTarget || '0', 10);
+            const start = performance.now();
+            const step = (now: number) => {
+              const p = Math.min((now - start) / 800, 1);
+              num.textContent = Math.round((1 - Math.pow(1 - p, 3)) * target) + '%';
+              if (p < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+          });
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [skillsProgress]);
+
+  // Section entrance observer
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const container = mainContentRef.current;
+    if (!container) return;
+    const sections = container.querySelectorAll('[data-animate-section]') as NodeListOf<HTMLElement>;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target as HTMLElement;
+          const delay = parseInt(el.dataset.animateDelay || '0', 10);
+          setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+          }, delay);
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.08 });
+    sections.forEach(s => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      <div className="flex">
-        {/* Sidebar Navigation */}
-        <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:z-50">
-          <div className="flex flex-col flex-grow pt-5 bg-white border-r border-gray-200 shadow-sm">
-            {/* Logo */}
-            <div className="flex items-center flex-shrink-0 px-4 mb-8">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Brain className="w-5 h-5 text-white" />
-              </div>
-              <span className="ml-3 text-xl font-bold text-heading">CareerAI</span>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
+      {/* Green glow */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse 50% 40% at 80% 0%, rgba(80,120,90,0.18) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0 }} />
+
+      <div style={{ display: 'flex', position: 'relative', zIndex: 1 }}>
+        {/* Sidebar Navigation — desktop only */}
+        <div style={{ display: 'none', position: 'fixed', top: 0, bottom: 0, left: 0, width: 256, zIndex: 50, flexDirection: 'column', background: '#0d0d0d', borderRight: '1px solid rgba(255,255,255,0.06)' }} className="md:!flex">
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', padding: '24px 20px 32px', gap: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(90,170,120,0.2)', border: '1px solid rgba(90,170,120,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Brain style={{ width: 18, height: 18, color: '#6db88a' }} />
             </div>
+            <span style={{ fontSize: '1.15rem', fontFamily: "'Syne', sans-serif", fontWeight: 700, color: 'white', letterSpacing: '-0.02em' }}>CareerAI</span>
+          </div>
 
-            {/* Navigation Items */}
-            <nav className="flex-1 px-4 space-y-2">
-              {sidebarItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (item.id === 'home') {
-                        navigate('/');
-                      } else {
-                        setActiveTab(item.id);
-                      }
-                    }}
-                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      activeTab === item.id
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* User Profile Section */}
-            <div className="flex-shrink-0 p-4 border-t border-gray-200">
-              <div className="flex items-center">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {userProfile.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="ml-3 flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {userProfile.name}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {userProfile.education}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
+          {/* Nav Items */}
+          <nav style={{ flex: 1, padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
                   onClick={() => {
-                    onLogout();
-                    navigate('/');
+                    if (item.id === 'home') navigate('/');
+                    else setActiveTab(item.id);
                   }}
-                  className="ml-2 text-gray-400 hover:text-gray-600"
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', borderRadius: 8, border: isActive ? '1px solid rgba(90,170,120,0.2)' : '1px solid transparent',
+                    background: isActive ? 'rgba(90,170,120,0.12)' : 'transparent',
+                    color: isActive ? 'white' : 'rgba(255,255,255,0.55)',
+                    fontSize: '0.9rem', fontWeight: isActive ? 500 : 400, cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLElement).style.color = 'white'; } }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.55)'; } }}
                 >
-                  <Zap className="w-4 h-4" />
-                </Button>
-              </div>
+                  <Icon style={{ width: 18, height: 18, color: isActive ? '#6db88a' : 'rgba(255,255,255,0.4)' }} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* User info at bottom */}
+          <div style={{ padding: '16px 16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 600, fontFamily: "'Syne', sans-serif" }}>
+              {userProfile.name.split(' ').map(n => n[0]).join('')}
             </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ color: 'white', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{userProfile.name}</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userProfile.education}</p>
+            </div>
+            <button
+              onClick={() => { onLogout(); navigate('/'); }}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 4, transition: 'color 0.2s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.3)'; }}
+            >
+              <Zap style={{ width: 16, height: 16 }} />
+            </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="md:pl-64 flex flex-col flex-1">
+        <div className="md:pl-64" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {/* Mobile Header */}
-          <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Brain className="w-5 h-5 text-white" />
+          <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(90,170,120,0.2)', border: '1px solid rgba(90,170,120,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Brain style={{ width: 16, height: 16, color: '#6db88a' }} />
               </div>
-              <span className="ml-3 text-xl font-bold text-heading">CareerAI</span>
+              <span style={{ fontSize: '1rem', fontFamily: "'Syne', sans-serif", fontWeight: 700, color: 'white' }}>CareerAI</span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onLogout();
-                navigate('/');
-              }}
-            >
-              <Zap className="w-4 h-4" />
-            </Button>
+            <button onClick={() => { onLogout(); navigate('/'); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+              <Zap style={{ width: 16, height: 16 }} />
+            </button>
           </div>
 
           {/* Main Dashboard Content */}
-          <div className="flex-1 p-6">
+          <div ref={mainContentRef} style={{ flex: 1, padding: 24, color: 'rgba(255,255,255,0.82)' }}>
             {/* Welcome Section */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-heading mb-2">
+            <div style={{ marginBottom: 32 }}>
+              <h1 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.8rem', color: 'white', marginBottom: 6, letterSpacing: '-0.02em' }}>
                 Welcome back, {userProfile.name.split(' ')[0]}! 👋
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p style={{ fontSize: '1rem', fontWeight: 300, color: 'rgba(255,255,255,0.5)' }}>
                 Ready to continue your career journey?
               </p>
             </div>
 
             {/* Profile Summary Card */}
-            <Card className="mb-8 shadow-smooth hover:shadow-floating transition-all duration-300">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="w-5 h-5 mr-2" />
-                  Profile Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      {userProfile.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-heading mb-2">{userProfile.name}</h3>
-                    <p className="text-muted-foreground mb-3">{userProfile.education}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {userProfile.interests.map((interest, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {interest}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Member since</p>
-                    <p className="font-semibold text-heading">{userProfile.joinDate}</p>
+            <div data-animate-section data-animate-delay="0" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, marginBottom: 32, padding: '24px 28px', opacity: 0, transform: 'translateY(20px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <User style={{ width: 18, height: 18, color: '#6db88a' }} />
+                <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1rem', color: 'white', margin: 0 }}>Profile Summary</h2>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24 }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.4rem', fontWeight: 700, fontFamily: "'Syne', sans-serif", flexShrink: 0, boxShadow: '0 0 20px rgba(90,170,120,0.15)' }}>
+                  {userProfile.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'white', marginBottom: 4, fontFamily: "'Syne', sans-serif" }}>{userProfile.name}</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginBottom: 12 }}>{userProfile.education}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {userProfile.interests.map((interest, index) => (
+                      <span key={index} style={{ background: 'rgba(90,170,120,0.12)', border: '1px solid rgba(90,170,120,0.25)', color: '#6db88a', borderRadius: 20, padding: '2px 12px', fontSize: '0.75rem', fontWeight: 500 }}>{interest}</span>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', margin: 0 }}>Member since</p>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600, margin: '2px 0 0' }}>{userProfile.joinDate}</p>
+                </div>
+              </div>
+            </div>
 
             {/* Saved Careers Section */}
-            <Card className="mb-8 shadow-smooth hover:shadow-floating transition-all duration-300">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Briefcase className="w-5 h-5 mr-2" />
-                    Saved Careers
-                  </div>
-                  <Button variant="outline" size="sm">
-                    View All
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {savedCareers.map((career) => (
-                    <Card key={career.id} className="p-4 hover:shadow-md transition-all duration-200 border border-gray-200">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-heading text-lg mb-1">{career.title}</h4>
-                          <p className="text-muted-foreground text-sm mb-2">{career.company} • {career.location}</p>
-                          <p className="text-primary font-medium">{career.salary}</p>
+            <div data-animate-section data-animate-delay="100" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, marginBottom: 32, padding: '24px 28px', opacity: 0, transform: 'translateY(20px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Briefcase style={{ width: 18, height: 18, color: '#6db88a' }} />
+                  <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1rem', color: 'white', margin: 0 }}>Saved Careers</h2>
+                </div>
+                <button
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.82rem', fontFamily: "'DM Sans', sans-serif", transition: 'color 0.2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#6db88a'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}
+                >
+                  View All
+                  <ChevronRight style={{ width: 14, height: 14 }} />
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                {savedCareers.map((career) => {
+                  const typeStyle = getTypeBadgeStyle(career.type);
+                  const matchColor = getMatchColor(career.matchScore);
+                  return (
+                    <div
+                      key={career.id}
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, transition: 'all 0.2s ease', cursor: 'default' }}
+                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(90,170,120,0.25)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.35)'; }}
+                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(0)'; el.style.borderColor = 'rgba(255,255,255,0.08)'; el.style.boxShadow = 'none'; }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, color: 'white', fontSize: '0.95rem', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{career.title}</h4>
+                          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{career.company} • {career.location}</p>
+                          <p style={{ color: '#6db88a', fontWeight: 600, fontSize: '0.9rem' }}>{career.salary}</p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge className={`text-xs ${getMatchScoreColor(career.matchScore)}`}>
-                            {career.matchScore}% match
-                          </Badge>
-                          <Button variant="ghost" size="sm" className="p-1">
-                            <Heart className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                          </Button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: matchColor }}>{career.matchScore}% match</span>
+                          <button
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'rgba(255,255,255,0.25)', transition: 'color 0.2s, transform 0.2s' }}
+                            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#e06060'; el.style.transform = 'scale(1.2)'; }}
+                            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'rgba(255,255,255,0.25)'; el.style.transform = 'scale(1)'; }}
+                          >
+                            <Heart style={{ width: 15, height: 15 }} />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <Badge className={`text-xs ${getTypeColor(career.type)}`}>
-                          {career.type}
-                        </Badge>
-                        <div className="flex flex-wrap gap-1">
-                          {career.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ background: typeStyle.bg, border: typeStyle.border, color: typeStyle.color, borderRadius: 20, padding: '3px 10px', fontSize: '0.72rem', fontWeight: 500 }}>{career.type}</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {career.tags.slice(0, 3).map((tag, idx) => (
+                            <span key={idx} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', borderRadius: 6, padding: '2px 8px', fontSize: '0.75rem' }}>{tag}</span>
                           ))}
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">Saved {career.savedDate}</p>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', marginTop: 8 }}>Saved {career.savedDate}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Skills Progress Tracker */}
-            <Card className="shadow-smooth hover:shadow-floating transition-all duration-300">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2" />
-                  Skills Progress Tracker
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {skillsProgress.map((skill, index) => {
-                    const Icon = skill.icon;
-                    return (
-                      <div key={index} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className={`p-2 rounded-lg ${skill.color} bg-opacity-10`}>
-                              <Icon className={`w-4 h-4 ${skill.color.replace('bg-', 'text-')}`} />
-                            </div>
-                            <span className="font-medium text-heading">{skill.name}</span>
+            <div data-animate-section data-animate-delay="200" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '24px 28px', opacity: 0, transform: 'translateY(20px)', transition: 'opacity 500ms ease-out, transform 500ms ease-out' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <TrendingUp style={{ width: 18, height: 18, color: '#6db88a' }} />
+                <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1rem', color: 'white', margin: 0 }}>Skills Progress Tracker</h2>
+              </div>
+              <div ref={skillsGridRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 24 }}>
+                {skillsProgress.map((skill, index) => {
+                  const Icon = skill.icon;
+                  return (
+                    <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(90,170,120,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon style={{ width: 16, height: 16, color: '#6db88a' }} />
                           </div>
-                          <span className="text-sm font-semibold text-heading">{skill.level}%</span>
+                          <span style={{ fontWeight: 500, color: 'white', fontSize: '0.9rem' }}>{skill.name}</span>
                         </div>
-                        <Progress value={skill.level} className="h-2" />
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Beginner</span>
-                          <span>Expert</span>
-                        </div>
+                        <span data-count-target={skill.level} style={{ fontSize: '0.85rem', fontWeight: 600, color: 'white' }}>0%</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
+                        <div data-dash-bar data-target-width={`${skill.level}%`} style={{ height: 6, borderRadius: 3, background: 'linear-gradient(90deg, #4a9060, #6db88a)', width: '0%', transition: 'width 800ms ease-out' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>Beginner</span>
+                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>Expert</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
