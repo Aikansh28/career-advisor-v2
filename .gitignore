@@ -8,5 +8,14 @@ notebooks/
 node_modules/
 .DS_Store
 backend/.git/
+
+# Ensure careers.json is tracked (it's needed by the API)
 !backend/careers.json
-!backend/careers_embeddings.pkl
+
+# Secrets & credentials - never track these
+*sa-key*
+*.key
+career-advisor-sa-key.json
+
+# Old data files
+*.csv
