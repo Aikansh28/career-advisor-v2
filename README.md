@@ -8,6 +8,7 @@
 
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Getting Started](#getting-started)
   - [Backend Setup](#backend-setup)
@@ -23,6 +24,22 @@
 **Career Advisor** is a full-stack web application designed to guide users through discovering, evaluating, and planning their career journeys. It combines a high-performance FastAPI backend for career data and AI embeddings with a modern, accessible React frontend — delivering a seamless, intelligent career planning experience.
 
 ---
+## Screenshots
+
+![Screen 1](assets/screenshots/1.jpeg)
+
+![Screen 2](assets/screenshots/2.jpeg)
+
+![Screen 3](assets/screenshots/3.jpeg)
+
+![Screen 4](assets/screenshots/4.jpeg)
+
+![Screen 5](assets/screenshots/5.jpeg)
+
+![Screen 6](assets/screenshots/6.jpeg)
+
+![Screen 7](assets/screenshots/7.jpeg)
+
 
 ## Tech Stack
 
